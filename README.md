@@ -5,14 +5,12 @@ Current Issues:
 
 Do To's:
 
-1) Move IOReg to the Teensy's RAM.
+1) Design a proper PCB to hold all components, no jumper wires!!
 
-2) Design a proper PCB to hold all components, no jumper wires!!
+2) Finish sound implementation.
 
-3) Finish sound implementation.
+3) Start implemetation of user buttons.
 
-4) Start implemetation of user buttons.
+4) Serious optimisation and code cleanup.
 
-5) Serious optimisation and code cleanup.
-
-6) Proper hardware explanation and documentation.
+5) Proper hardware explanation and documentation.
