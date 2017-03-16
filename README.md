@@ -1,19 +1,18 @@
 Current Issues:
 
-1) Weird behaviour when retrieving uint8_t from SRAM not sure if caused by the write failing or the read failing, could be to do with noise from the jumper wires...
-
-2) Colours are mostly correct however blended semi-transparency produces incorrect colour result.
-
+1) Colours are mostly correct however blended semi-transparency produces incorrect colour result.
 
 
 Do To's:
 
 1) Move IOReg to the Teensy's RAM.
 
-2) Finish sound implementation.
+2) Design a proper PCB to hold all components, no jumper wires!!
 
-3) Start implemetation of user buttons.
+3) Finish sound implementation.
 
-4) Serious optimisation and code cleanup.
+4) Start implemetation of user buttons.
 
-5) Proper hardware explanation and documentation.
+5) Serious optimisation and code cleanup.
+
+6) Proper hardware explanation and documentation.
