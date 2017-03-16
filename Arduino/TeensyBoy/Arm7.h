@@ -163,6 +163,7 @@ class Processor
     int32_t bgy[2];
     bool cpuHalted = false;
     uint8_t OAMRAM[0x3FF];
+    uint8_t IOREG[0x4FF];
 
     //Methods
     Processor();
@@ -324,6 +325,7 @@ class Processor
 
     void SPIRAMWrite(uint32_t address, uint8_t value);
     uint8_t SPIRAMRead(uint32_t address);
+    void SetAddress(uint32_t val);
 };
 
 #endif

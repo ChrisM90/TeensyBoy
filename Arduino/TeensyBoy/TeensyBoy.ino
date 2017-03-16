@@ -23,10 +23,10 @@
 */
 
 #include "Arm7.h"
+#include "ILI9341_t3DMA.h"
 #include <SD.h>
 #include <SD_t3.h>
 #include <SPI.h>
-#include <ILI9341_t3DMA.h>
 
 Processor processor;
 
@@ -93,31 +93,33 @@ void setup()
   Serial.println("Checking and Resetting Memory...");
   Serial.flush();
 
-  uint8_t val = 0;
-  bool failed = false;
-  for(uint32_t i = 0; i < 0x80000; i++)
+  while(true)
   {
-    processor.SPIRAMWrite(i, val);
-    uint8_t value = processor.SPIRAMRead(i);
-
-    if(value != val)
+    uint8_t val = 0;
+    bool failed = false;
+    for(uint32_t i = 0; i < 0x80000; i++)
     {
-      Serial.println("Memory Check Failed at :" + String(i, DEC));
-      Serial.flush();
-      failed = true;
-      break;
+      processor.SPIRAMWrite(i, val);
+      uint8_t value = processor.SPIRAMRead(i);
+  
+      if(value != val)
+      {
+        Serial.println("Memory Check Failed at :" + String(i, DEC));
+        Serial.flush();
+        failed = true;
+        break;
+      }
+      
+      val++;
     }
     
-    val++;
-  }
+    if(!failed)
+    {
+      Serial.println("Ram Test: Passed");
+      break;
+    }
   
-  if(!failed)
-  {
-    Serial.println("Ram Test: Passed");
-  }
-  else
-  {
-    while(true){}
+    delay(1000);
   }
 }
 
@@ -171,6 +173,8 @@ void EnterVBlank()
 
   // Render the frame
   tft.refreshOnce();
+  Serial.println("Frame Rendered");
+  
   if ((dispstat & (1 << 3)) != 0)
   {
     // Fire the vblank irq
@@ -286,9 +290,6 @@ void RenderLine()
   }
 
   dispCnt = processor.ReadU16(DISPCNT, ioRegStart); //Read DISPCNT 0x0 from IOReg
-
-  Serial.println("Render Line " + String(curLine, DEC) + " " + String(dispCnt, DEC));
-  //Serial.flush();
 
   if ((dispCnt & (1 << 7)) != 0)
   {

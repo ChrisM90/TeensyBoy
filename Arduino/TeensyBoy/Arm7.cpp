@@ -102,7 +102,7 @@ Processor::Processor()
 
   //Memory Control Default Read
   pinMode(CE, OUTPUT); //CE
-  digitalWrite(CE, LOW);
+  digitalWrite(CE, HIGH);
   pinMode(WE, OUTPUT); //WE
   digitalWrite(WE, HIGH);
   pinMode(OE, OUTPUT); //OE
@@ -117,6 +117,7 @@ Processor::Processor()
 
 void Processor::CreateCores(class Processor *par, class File *rom)
 {
+  digitalWrite(CE, LOW);
   ROM = rom;
   SelfReference = par;
   armCore = ArmCore(SelfReference);
@@ -685,7 +686,7 @@ uint8_t Processor::ReadIO8(uint32_t address)
       return (uint8_t)((timerCnt[3] >> 10) >> 8);
 
     default:
-      return SPIRAMRead(ioRegStart + address);
+      return IOREG[address];
   }
 }
 
@@ -938,7 +939,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case BG2X_L + 2:
     case BG2X_L + 3:
       {
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         uint32_t tmp = ReadU32(BG2X_L, ioRegStart);
         if ((tmp & (1 << 27)) != 0) tmp |= 0xF0000000;
         WriteU32(BG2X_L, ioRegStart, tmp);
@@ -952,7 +953,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case BG3X_L + 2:
     case BG3X_L + 3:
       {
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         uint32_t tmp = ReadU32(BG3X_L, ioRegStart);
         if ((tmp & (1 << 27)) != 0) tmp |= 0xF0000000;
         WriteU32(BG3X_L, ioRegStart, tmp);
@@ -966,7 +967,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case BG2Y_L + 2:
     case BG2Y_L + 3:
       {
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         uint32_t tmp = ReadU32(BG2Y_L, ioRegStart);
         if ((tmp & (1 << 27)) != 0) tmp |= 0xF0000000;
         WriteU32(BG2Y_L, ioRegStart, tmp);
@@ -980,7 +981,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case BG3Y_L + 2:
     case BG3Y_L + 3:
       {
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         uint32_t tmp = ReadU32(BG3Y_L, ioRegStart);
         if ((tmp & (1 << 27)) != 0) tmp |= 0xF0000000;
         WriteU32(BG3Y_L, ioRegStart, tmp);
@@ -991,25 +992,25 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
 
     case DMA0CNT_H:
     case DMA0CNT_H + 1:
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         WriteDmaControl(0);
         break;
 
     case DMA1CNT_H:
     case DMA1CNT_H + 1:
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         WriteDmaControl(1);
         break;
 
     case DMA2CNT_H:
     case DMA2CNT_H + 1:
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         WriteDmaControl(2);
         break;
 
     case DMA3CNT_H:
     case DMA3CNT_H + 1:
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         WriteDmaControl(3);
         break;
 
@@ -1017,7 +1018,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case TM0CNT + 1:
       {
         uint16_t oldCnt = ReadU16(TM0CNT, ioRegStart);
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         WriteTimerControl(0, oldCnt);
       }
       break;
@@ -1026,7 +1027,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case TM1CNT + 1:
       {
         uint16_t oldCnt = ReadU16(TM1CNT, ioRegStart);
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         WriteTimerControl(1, oldCnt);
       }
       break;
@@ -1035,7 +1036,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case TM2CNT + 1:
       {
         uint16_t oldCnt = ReadU16(TM2CNT, ioRegStart);
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         WriteTimerControl(2, oldCnt);
       }
       break;
@@ -1044,7 +1045,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case TM3CNT + 1:
       {
         uint16_t oldCnt = ReadU16(TM3CNT, ioRegStart);
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         WriteTimerControl(3, oldCnt);
       }
       break;
@@ -1054,7 +1055,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case FIFO_A_H:
     case FIFO_A_H + 1:
       {
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         sound.IncrementFifoA();
       }
       break;
@@ -1064,7 +1065,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case FIFO_B_H:
     case FIFO_B_H + 1:
       {
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         sound.IncrementFifoB();
       }
       break;
@@ -1073,19 +1074,19 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case IF + 1:
       {
         uint16_t tmp = ReadU16(address, ioRegStart);
-        SPIRAMWrite((ioRegStart + address), (tmp & (uint8_t)~value));
+        IOREG[address] = (tmp & (uint8_t)~value);
       }
       break;
 
     case HALTCNT + 1:
       {
-        SPIRAMWrite((ioRegStart + address), value);
+        IOREG[address] = value;
         Halt();
       }
       break;
 
     default:
-      SPIRAMWrite((ioRegStart + address), value);
+      IOREG[address] = value;
       break;
   }
 }
@@ -1693,6 +1694,10 @@ uint8_t Processor::ReadU8(uint32_t address, uint32_t RAMRange)
   {
     tmp = OAMRAM[address];
   }
+  else if(RAMRange == ioRegStart)
+  {
+    tmp = IOREG[address];
+  }
   else
   {
     tmp = SPIRAMRead(RAMRange + address);
@@ -1711,6 +1716,10 @@ uint16_t Processor::ReadU16(uint32_t address, uint32_t RAMRange)
   {
     tmp = (uint16_t)(OAMRAM[address] | (OAMRAM[address + 1] << 8));
   }
+  else if(RAMRange == ioRegStart)
+  {
+    tmp = (uint16_t)(IOREG[address] | (IOREG[address + 1] << 8));
+  }
   else
   {
     tmp = (uint16_t)(SPIRAMRead(RAMRange + address) | (SPIRAMRead(RAMRange + address + 1) << 8));
@@ -1728,6 +1737,10 @@ uint32_t Processor::ReadU32(uint32_t address, uint32_t RAMRange)
   if(RAMRange == oamRamStart)
   {
     tmp = (uint32_t)(OAMRAM[address] | (OAMRAM[address + 1] << 8) | (OAMRAM[address + 2] << 16) | (OAMRAM[address + 3] << 24));
+  }
+  else if(RAMRange == ioRegStart)
+  {
+    tmp = (uint32_t)(IOREG[address] | (IOREG[address + 1] << 8) | (IOREG[address + 2] << 16) | (IOREG[address + 3] << 24));
   }
   else
   {
@@ -2474,6 +2487,10 @@ void Processor::WriteU8(uint32_t address, uint32_t RAMRange, uint8_t value)
   {
     OAMRAM[address] = value;
   }
+  else if(RAMRange == ioRegStart)
+  {
+    IOREG[address] = value;
+  }
   else
   {
     SPIRAMWrite((RAMRange + address), value);
@@ -2487,6 +2504,11 @@ void Processor::WriteU16(uint32_t address, uint32_t RAMRange, uint16_t value)
   {
     OAMRAM[address] = (uint8_t)(value & 0xFF);
     OAMRAM[address + 1] = (uint8_t)(value >> 8);
+  }
+  else if(RAMRange == ioRegStart)
+  {
+    IOREG[address] = (uint8_t)(value & 0xFF);
+    IOREG[address + 1] = (uint8_t)((value >> 8) & 0xFF);
   }
   else
   {
@@ -2505,6 +2527,13 @@ void Processor::WriteU32(uint32_t address, uint32_t RAMRange, uint32_t value)
     OAMRAM[address + 2] = (uint8_t)((value >> 16) & 0xFF);
     OAMRAM[address + 3] = (uint8_t)(value >> 24);
   }
+  else if(RAMRange == ioRegStart)
+  {
+    IOREG[address] = (uint8_t)(value & 0xFF);
+    IOREG[address + 1] = (uint8_t)((value >> 8) & 0xFF);
+    IOREG[address + 2] = (uint8_t)((value >> 16) & 0xFF);
+    IOREG[address + 3] = (uint8_t)(value >> 24);
+  }
   else
   {
     SPIRAMWrite((RAMRange + address), (uint8_t)(value & 0xFF));
@@ -2516,13 +2545,10 @@ void Processor::WriteU32(uint32_t address, uint32_t RAMRange, uint32_t value)
 
 void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
 {
+  digitalWriteFast(CLK, LOW);
   digitalWriteFast(CS, LOW); //Latch Low
-  shiftOut(SER, CLK, MSBFIRST, (uint8_t)((address >> 16) & 0xFF)); //Shift Out
-  shiftOut(SER, CLK, MSBFIRST, (uint8_t)((address >> 8) & 0xFF)); //Shift Out
-  shiftOut(SER, CLK, MSBFIRST, (uint8_t)(address & 0xFF)); //Shift Out
+  SetAddress(address); //Shift Out
   digitalWriteFast(CS, HIGH); //Latch High
-  
-  delayMicroseconds(2);
   
   //Start Write Cycle
   digitalWriteFast(CE, LOW);
@@ -2547,9 +2573,6 @@ void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
   digitalWriteFast(7, ((value >> 5) & 0x01));
   digitalWriteFast(8, ((value >> 6) & 0x01));
   digitalWriteFast(9, ((value >> 7) & 0x01));
-
-  delayMicroseconds(2);
-  
   //Back to Read
   digitalWriteFast(CE, LOW);
   digitalWriteFast(WE, HIGH);
@@ -2568,14 +2591,11 @@ void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
 
 uint8_t Processor::SPIRAMRead(uint32_t address)
 {
+  digitalWriteFast(CLK, LOW);
   digitalWriteFast(CS, LOW); //Latch Low
-  shiftOut(SER, CLK, MSBFIRST, (uint8_t)((address >> 16) & 0xFF)); //Shift Out
-  shiftOut(SER, CLK, MSBFIRST, (uint8_t)((address >> 8) & 0xFF)); //Shift Out
-  shiftOut(SER, CLK, MSBFIRST, (uint8_t)(address & 0xFF)); //Shift Out
+  SetAddress(address); //Shift Out
   digitalWriteFast(CS, HIGH); //Latch High
-
-  delayMicroseconds(2);
-
+  
   //Start Read Cycle
   digitalWriteFast(CE, LOW);
   digitalWriteFast(WE, HIGH);
@@ -2609,6 +2629,17 @@ uint8_t Processor::SPIRAMRead(uint32_t address)
   return value;
 }
 
+void Processor::SetAddress(uint32_t val)
+{
+  uint8_t i;
+
+  for (i = 0; i < 24; i++) 
+  {
+    digitalWrite(SER, !!(val & (1 << (23 - i))));
+    digitalWrite(CLK, HIGH);
+    digitalWrite(CLK, LOW);
+  }
+}
 
 
 
