@@ -1,6 +1,6 @@
 Current Issues:
 
-1) Colours are mostly correct however blended semi-transparency produces incorrect colour result.
+1) SRAM read and write is still flaky this seems to be caused by some kind of contension between the shift registers and the SRAM...
 
 
 Do To's:
