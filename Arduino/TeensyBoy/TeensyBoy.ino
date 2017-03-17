@@ -72,6 +72,8 @@ File FROM;
 #define OAM_BASE 0x7000000
 
 ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO);
+unsigned long FrameTime = 0;
+float FPS = 0;
 
 void setup()
 {
@@ -93,14 +95,13 @@ void setup()
   Serial.println("Checking and Resetting Memory...");
   Serial.flush();
 
-  //while(true)
+  while(true)
   {
     uint8_t val = 0;
     bool failed = false;
     for(uint32_t i = 0; i < 0x80000; i++)
     {
       processor.SPIRAMWrite(i, val);
-      delayMicroseconds(1); 
       uint8_t value = processor.SPIRAMRead(i);
   
       if(value != val)
@@ -117,10 +118,10 @@ void setup()
     if(!failed)
     {
       Serial.println("Ram Test: Passed");
-      //break;
+      break;
     }
   
-    //delay(1000);
+    delay(1000);
   }
 }
 
@@ -158,10 +159,7 @@ void loop()
     vramCycles -= cycleStep;
 
     processor.FireIrq();
-    if(loopcount % 100 == 0)
-    {
-      Serial.println("Loop: " + String(loopcount, DEC));
-    }
+
     loopcount++;
   }
 }
@@ -173,8 +171,15 @@ void EnterVBlank()
   processor.WriteU16(DISPSTAT, ioRegStart, dispstat);//Write new DISPSTAT 0x4 to IOReg
 
   // Render the frame
+
+  if(FrameTime != 0)
+  {
+    FPS = 1000000.0f / (float)(micros() - FrameTime);
+  }
+
+  Serial.println("FPS: " + String(FPS));
   tft.refreshOnce();
-  Serial.println("Frame Rendered");
+  FrameTime = micros();
   
   if ((dispstat & (1 << 3)) != 0)
   {

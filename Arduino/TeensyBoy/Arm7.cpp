@@ -78,34 +78,34 @@ uint32_t spsrUND = 0;
 #define WE 29
 #define OE 30
 
-#define DIO0 2
-#define DIO1 3
-#define DIO2 4
-#define DIO3 5
-#define DIO4 6
-#define DIO5 7
-#define DIO6 8
-#define DIO7 9
+#define DIO0 2 //D0
+#define DIO1 3 //A12
+#define DIO2 4 //A13
+#define DIO3 5 //D7
+#define DIO4 6 //D4
+#define DIO5 7 //D2
+#define DIO6 8 //D3
+#define DIO7 9 //C3
 
-#define ADD0 0
-#define ADD1 1
-#define ADD2 24
-#define ADD3 25
-#define ADD4 31
-#define ADD5 32
-#define ADD6 40
-#define ADD7 41
-#define ADD8 42
-#define ADD9 43
-#define ADD10 44
-#define ADD11 45
-#define ADD12 46
-#define ADD13 47
-#define ADD14 48
-#define ADD15 49
-#define ADD16 50
-#define ADD17 51
-#define ADD18 52
+#define ADD0 0   //B16
+#define ADD1 1   //B17
+#define ADD2 24  //E26
+#define ADD3 25  //A5 
+#define ADD4 31  //B10
+#define ADD5 32  //B11
+#define ADD6 40  //A28 
+#define ADD7 41  //A29 
+#define ADD8 42  //A26 
+#define ADD9 43  //B20
+#define ADD10 44 //B22
+#define ADD11 45 //B23 
+#define ADD12 46 //B21 
+#define ADD13 47 //D8 
+#define ADD14 48 //D9 
+#define ADD15 49 //B4 
+#define ADD16 50 //B5 
+#define ADD17 51 //D14
+#define ADD18 52 //D13
 
 ArmCore armCore;
 ThumbCore thumbCore;
