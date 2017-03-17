@@ -74,13 +74,38 @@ uint32_t spsrSVC = 0;
 uint32_t spsrABT = 0;
 uint32_t spsrUND = 0;
 
-#define MEMSPICLOCK 30000000
 #define CE 28
 #define WE 29
 #define OE 30
-#define CS 31
-#define SER 0
-#define CLK 32
+
+#define DIO0 2
+#define DIO1 3
+#define DIO2 4
+#define DIO3 5
+#define DIO4 6
+#define DIO5 7
+#define DIO6 8
+#define DIO7 9
+
+#define ADD0 0
+#define ADD1 1
+#define ADD2 24
+#define ADD3 25
+#define ADD4 31
+#define ADD5 32
+#define ADD6 40
+#define ADD7 41
+#define ADD8 42
+#define ADD9 43
+#define ADD10 44
+#define ADD11 45
+#define ADD12 46
+#define ADD13 47
+#define ADD14 48
+#define ADD15 49
+#define ADD16 50
+#define ADD17 51
+#define ADD18 52
 
 ArmCore armCore;
 ThumbCore thumbCore;
@@ -91,14 +116,14 @@ File *ROM;
 Processor::Processor()
 {
   //Memory Data IO
-  pinMode(2, INPUT); //IO 0
-  pinMode(3, INPUT); //IO 1
-  pinMode(4, INPUT); //IO 2
-  pinMode(5, INPUT); //IO 3
-  pinMode(6, INPUT); //IO 4
-  pinMode(7, INPUT); //IO 5
-  pinMode(8, INPUT); //IO 6
-  pinMode(9, INPUT); //IO 7
+  pinMode(DIO0, INPUT); //IO 0
+  pinMode(DIO1, INPUT); //IO 1
+  pinMode(DIO2, INPUT); //IO 2
+  pinMode(DIO3, INPUT); //IO 3
+  pinMode(DIO4, INPUT); //IO 4
+  pinMode(DIO5, INPUT); //IO 5
+  pinMode(DIO6, INPUT); //IO 6
+  pinMode(DIO7, INPUT); //IO 7
 
   //Memory Control Default Read
   pinMode(CE, OUTPUT); //CE
@@ -109,10 +134,45 @@ Processor::Processor()
   digitalWrite(OE, LOW);
 
   //Memory Address
-  pinMode(SER, OUTPUT);  //MOSI = Serial
-  pinMode(CS, OUTPUT); //CS = Latch
-  pinMode(CLK, OUTPUT); //Clock
-  digitalWrite(CS, LOW);
+  pinMode(ADD0, OUTPUT); //ADD 0
+  pinMode(ADD1, OUTPUT); //ADD 1
+  pinMode(ADD2, OUTPUT); //ADD 2
+  pinMode(ADD3, OUTPUT); //ADD 3
+  pinMode(ADD4, OUTPUT); //ADD 4
+  pinMode(ADD5, OUTPUT); //ADD 5
+  pinMode(ADD6, OUTPUT); //ADD 6
+  pinMode(ADD7, OUTPUT); //ADD 7
+  pinMode(ADD8, OUTPUT); //ADD 8
+  pinMode(ADD9, OUTPUT); //ADD 9
+  pinMode(ADD10, OUTPUT); //ADD 10
+  pinMode(ADD11, OUTPUT); //ADD 11
+  pinMode(ADD12, OUTPUT); //ADD 12
+  pinMode(ADD13, OUTPUT); //ADD 13
+  pinMode(ADD14, OUTPUT); //ADD 14
+  pinMode(ADD15, OUTPUT); //ADD 15
+  pinMode(ADD16, OUTPUT); //ADD 16
+  pinMode(ADD17, OUTPUT); //ADD 17
+  pinMode(ADD18, OUTPUT); //ADD 18
+
+  digitalWrite(ADD0, LOW);
+  digitalWrite(ADD1, LOW);
+  digitalWrite(ADD2, LOW);
+  digitalWrite(ADD3, LOW);
+  digitalWrite(ADD4, LOW);
+  digitalWrite(ADD5, LOW);
+  digitalWrite(ADD6, LOW);
+  digitalWrite(ADD7, LOW);
+  digitalWrite(ADD8, LOW);
+  digitalWrite(ADD9, LOW);
+  digitalWrite(ADD10, LOW);
+  digitalWrite(ADD11, LOW);
+  digitalWrite(ADD12, LOW);
+  digitalWrite(ADD13, LOW);
+  digitalWrite(ADD14, LOW);
+  digitalWrite(ADD15, LOW);
+  digitalWrite(ADD16, LOW);
+  digitalWrite(ADD17, LOW);
+  digitalWrite(ADD18, LOW);
 }
 
 void Processor::CreateCores(class Processor *par, class File *rom)
@@ -2545,10 +2605,7 @@ void Processor::WriteU32(uint32_t address, uint32_t RAMRange, uint32_t value)
 
 void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
 {
-  digitalWriteFast(CLK, LOW);
-  digitalWriteFast(CS, LOW); //Latch Low
-  SetAddress(address); //Shift Out
-  digitalWriteFast(CS, HIGH); //Latch High
+  SetAddress(address);
   
   //Start Write Cycle
   digitalWriteFast(CE, LOW);
@@ -2573,9 +2630,12 @@ void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
   digitalWriteFast(7, ((value >> 5) & 0x01));
   digitalWriteFast(8, ((value >> 6) & 0x01));
   digitalWriteFast(9, ((value >> 7) & 0x01));
+
   //Back to Read
   digitalWriteFast(CE, LOW);
   digitalWriteFast(WE, HIGH);
+
+  SetAddress(0);
   
   pinMode(2, INPUT); //IO 0
   pinMode(3, INPUT); //IO 1
@@ -2591,17 +2651,14 @@ void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
 
 uint8_t Processor::SPIRAMRead(uint32_t address)
 {
-  digitalWriteFast(CLK, LOW);
-  digitalWriteFast(CS, LOW); //Latch Low
-  SetAddress(address); //Shift Out
-  digitalWriteFast(CS, HIGH); //Latch High
-  
+  SetAddress(address);
+
   //Start Read Cycle
   digitalWriteFast(CE, LOW);
   digitalWriteFast(WE, HIGH);
   digitalWriteFast(OE, LOW);
   uint8_t value;
-
+  
   pinMode(2, INPUT); //IO 0
   pinMode(3, INPUT); //IO 1
   pinMode(4, INPUT); //IO 2
@@ -2626,19 +2683,32 @@ uint8_t Processor::SPIRAMRead(uint32_t address)
   digitalWriteFast(WE, HIGH);
   digitalWriteFast(OE, LOW);
 
+  SetAddress(0);
+
   return value;
 }
 
-void Processor::SetAddress(uint32_t val)
+void Processor::SetAddress(uint32_t value)
 {
-  uint8_t i;
-
-  for (i = 0; i < 24; i++) 
-  {
-    digitalWriteFast(SER, !!(val & (1 << (23 - i))));
-    digitalWriteFast(CLK, HIGH);
-    digitalWriteFast(CLK, LOW);
-  }
+  digitalWriteFast(ADD0, (value & 0x01));
+  digitalWriteFast(ADD1, ((value >> 1) & 0x01));
+  digitalWriteFast(ADD2, ((value >> 2) & 0x01));
+  digitalWriteFast(ADD3, ((value >> 3) & 0x01));
+  digitalWriteFast(ADD4, ((value >> 4) & 0x01));
+  digitalWriteFast(ADD5, ((value >> 5) & 0x01));
+  digitalWriteFast(ADD6, ((value >> 6) & 0x01));
+  digitalWriteFast(ADD7, ((value >> 7) & 0x01));
+  digitalWriteFast(ADD8, ((value >> 8) & 0x01));
+  digitalWriteFast(ADD9, ((value >> 9) & 0x01));
+  digitalWriteFast(ADD10, ((value >> 10) & 0x01));
+  digitalWriteFast(ADD11, ((value >> 11) & 0x01));
+  digitalWriteFast(ADD12, ((value >> 12) & 0x01));
+  digitalWriteFast(ADD13, ((value >> 13) & 0x01));
+  digitalWriteFast(ADD14, ((value >> 14) & 0x01));
+  digitalWriteFast(ADD15, ((value >> 15) & 0x01));
+  digitalWriteFast(ADD16, ((value >> 16) & 0x01));
+  digitalWriteFast(ADD17, ((value >> 17) & 0x01));
+  digitalWriteFast(ADD18, ((value >> 18) & 0x01));
 }
 
 

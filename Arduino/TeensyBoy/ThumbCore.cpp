@@ -1288,3 +1288,4 @@ void ThumbCore::NormalOps(uint8_t op)
 
 
 
+

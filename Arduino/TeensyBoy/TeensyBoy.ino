@@ -93,18 +93,19 @@ void setup()
   Serial.println("Checking and Resetting Memory...");
   Serial.flush();
 
-  while(true)
+  //while(true)
   {
     uint8_t val = 0;
     bool failed = false;
     for(uint32_t i = 0; i < 0x80000; i++)
     {
       processor.SPIRAMWrite(i, val);
+      delayMicroseconds(1); 
       uint8_t value = processor.SPIRAMRead(i);
   
       if(value != val)
       {
-        Serial.println("Memory Check Failed at :" + String(i, DEC));
+        Serial.println("Memory Check Failed at :" + String(i, DEC) + " W: " + String(val, DEC) + " R: " + String(value, DEC));
         Serial.flush();
         failed = true;
         break;
@@ -116,10 +117,10 @@ void setup()
     if(!failed)
     {
       Serial.println("Ram Test: Passed");
-      break;
+      //break;
     }
   
-    delay(1000);
+    //delay(1000);
   }
 }
 
@@ -7396,6 +7397,7 @@ void DrawPixel(uint16_t y, uint16_t x, int16_t color) //Stretch Image every seco
       }
     }  
 }
+
 
 
 
