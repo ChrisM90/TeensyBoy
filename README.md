@@ -1,6 +1,8 @@
+Done away with the shift registers as I didnt seem to be able to get them to work reliably, Now using a direct parallel connection. New best FPS achieved 4.5 :-)  
+
 Current Issues:
 
-1) SRAM read and write is still flaky this seems to be caused by some kind of contension between the shift registers and the SRAM...
+1) Dev board is a bloody mess, jumper wires everywhere...
 
 
 Do To's:
