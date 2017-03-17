@@ -2635,11 +2635,12 @@ void Processor::SetAddress(uint32_t val)
 
   for (i = 0; i < 24; i++) 
   {
-    digitalWrite(SER, !!(val & (1 << (23 - i))));
-    digitalWrite(CLK, HIGH);
-    digitalWrite(CLK, LOW);
+    digitalWriteFast(SER, !!(val & (1 << (23 - i))));
+    digitalWriteFast(CLK, HIGH);
+    digitalWriteFast(CLK, LOW);
   }
 }
+
 
 
 

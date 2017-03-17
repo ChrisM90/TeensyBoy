@@ -36,7 +36,7 @@ File FROM;
 #define SCREEN_HEIGHT ILI9341_TFTHEIGHT
 #define TFT_DC      15
 #define TFT_CS      10
-#define TFT_RST     28  // 255 = unused, connect to 3.3V
+#define TFT_RST     28
 #define TFT_MOSI    11
 #define TFT_SCLK    13
 #define TFT_MISO    12
@@ -1299,20 +1299,25 @@ void RenderTextBgWindowBlend(int32_t bg)
               uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
               uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
               uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
               uint16_t sourceValue = tft.dgetPixel(curLine, i);
-
               r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
               g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
               b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
               if (r > 0xff) r = 0xff;
               if (g > 0xff) g = 0xff;
               if (b > 0xff) b = 0xff;
-              
               pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
             }
+            else
+            {
+              pixelColor = GBAToColor(pixelColor);
+            }
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor);
           Blend[i] = blendMaskType;
         }
@@ -1366,20 +1371,25 @@ void RenderTextBgWindowBlend(int32_t bg)
               uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
               uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
               uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
               uint16_t sourceValue = tft.dgetPixel(curLine, i);
-
               r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
               g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
               b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
               if (r > 0xff) r = 0xff;
               if (g > 0xff) g = 0xff;
               if (b > 0xff) b = 0xff;
-              
               pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
             }
+            else
+            {
+              pixelColor = GBAToColor(pixelColor);
+            }
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor);
           Blend[i] = blendMaskType;
         }
@@ -1443,14 +1453,19 @@ void RenderTextBgWindowBrightInc(int32_t bg)
           
           if ((windowCover[i] & (1 << 5)) != 0)
           {
-            uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-            uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-            uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
             r = r + (((0xFF - r) * blendY) >> 4);
             g = g + (((0xFF - g) * blendY) >> 4);
             b = b + (((0xFF - b) * blendY) >> 4);
-            pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor);
           Blend[i] = blendMaskType;
         }
@@ -1496,16 +1511,22 @@ void RenderTextBgWindowBrightInc(int32_t bg)
         {
           int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
           uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
+          
           if ((windowCover[i] & (1 << 5)) != 0)
           {
-            uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-            uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-            uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
             r = r + (((0xFF - r) * blendY) >> 4);
             g = g + (((0xFF - g) * blendY) >> 4);
             b = b + (((0xFF - b) * blendY) >> 4);
-            pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor);
           Blend[i] = blendMaskType;
         }
@@ -1565,16 +1586,22 @@ void RenderTextBgWindowBrightDec(int32_t bg)
         if (lookup != 0)
         {
           uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          
           if ((windowCover[i] & (1 << 5)) != 0)
           {
-            uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-            uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-            uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
             r = r - ((r * blendY) >> 4);
             g = g - ((g * blendY) >> 4);
             b = b - ((b * blendY) >> 4);
-            pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor);
           Blend[i] = blendMaskType;
         }
@@ -1620,16 +1647,22 @@ void RenderTextBgWindowBrightDec(int32_t bg)
         {
           int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
           uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
+          
           if ((windowCover[i] & (1 << 5)) != 0)
           {
-            uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-            uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-            uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
             r = r - ((r * blendY) >> 4);
             g = g - ((g * blendY) >> 4);
             b = b - ((b * blendY) >> 4);
-            pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor);
           Blend[i] = blendMaskType;
         }
@@ -1793,24 +1826,26 @@ void RenderTextBgBlend(int32_t bg)
         if (lookup != 0)
         {
           uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          
           if ((Blend[i] & blendTarget) != 0)
           {
               uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
               uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
               uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
               uint16_t sourceValue = tft.dgetPixel(curLine, i);
-
               r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
               g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
               b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
               if (r > 0xff) r = 0xff;
               if (g > 0xff) g = 0xff;
               if (b > 0xff) b = 0xff;
-              
               pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor); 
           Blend[i] = blendMaskType;
         }
@@ -1856,24 +1891,26 @@ void RenderTextBgBlend(int32_t bg)
         {
           int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
           uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
+          
           if ((Blend[i] & blendTarget) != 0)
           {
               uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
               uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
               uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
               uint16_t sourceValue = tft.dgetPixel(curLine, i);
-
               r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
               g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
               b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
               if (r > 0xff) r = 0xff;
               if (g > 0xff) g = 0xff;
               if (b > 0xff) b = 0xff;
-              
               pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor); 
           Blend[i] = blendMaskType;
         }
@@ -2269,24 +2306,26 @@ void DrawSpritesNormal(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-              
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -2317,24 +2356,26 @@ void DrawSpritesNormal(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -2388,24 +2429,26 @@ void DrawSpritesNormal(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-                  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -2438,24 +2481,26 @@ void DrawSpritesNormal(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-                  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -2785,24 +2830,26 @@ void DrawSpritesBlend(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-              
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -2833,24 +2880,26 @@ void DrawSpritesBlend(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -2904,24 +2953,26 @@ void DrawSpritesBlend(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-                  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -2954,24 +3005,26 @@ void DrawSpritesBlend(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-                  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3021,24 +3074,26 @@ void DrawSpritesBlend(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-              
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3069,24 +3124,26 @@ void DrawSpritesBlend(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-              
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3140,24 +3197,26 @@ void DrawSpritesBlend(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-              
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+              
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3190,24 +3249,26 @@ void DrawSpritesBlend(uint8_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-              
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3372,24 +3433,26 @@ void DrawSpritesBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-              
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3420,24 +3483,26 @@ void DrawSpritesBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3491,24 +3556,26 @@ void DrawSpritesBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-                  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-                  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3541,24 +3608,26 @@ void DrawSpritesBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-                  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3607,22 +3676,17 @@ void DrawSpritesBrightInc(int32_t priority)
               int32_t lookup = processor.ReadU8(0x10000 + curIdx, vRamStart);
               if (lookup != 0)
               {
-                uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
-                    
+                uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart); 
                 uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                 uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                 uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                 uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                 r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                 g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                 b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                 if (r > 0xff) r = 0xff;
                 if (g > 0xff) g = 0xff;
                 if (b > 0xff) b = 0xff;
-              
                 pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
@@ -3654,23 +3718,17 @@ void DrawSpritesBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
-
                 uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                 uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                 uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                 uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                 r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                 g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                 b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                 if (r > 0xff) r = 0xff;
                 if (g > 0xff) g = 0xff;
                 if (b > 0xff) b = 0xff;
-              
                 pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3727,24 +3785,18 @@ void DrawSpritesBrightInc(int32_t priority)
                 uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                 uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                 uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                 uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                 r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                 g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                 b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                 if (r > 0xff) r = 0xff;
                 if (g > 0xff) g = 0xff;
                 if (b > 0xff) b = 0xff;
-              
                 pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
-
               }
             }
-
             rx += dx;
             ry += dy;
           }
@@ -3773,23 +3825,17 @@ void DrawSpritesBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
-
                 uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                 uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                 uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                 uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                 r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                 g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                 b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                 if (r > 0xff) r = 0xff;
                 if (g > 0xff) g = 0xff;
                 if (b > 0xff) b = 0xff;
-              
                 pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -3954,24 +4000,26 @@ void DrawSpritesBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-              
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -4002,24 +4050,26 @@ void DrawSpritesBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-                  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -4073,24 +4123,26 @@ void DrawSpritesBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-                  
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -4123,24 +4175,26 @@ void DrawSpritesBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
                 {
                   uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                   uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                   uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-
                   uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-                  
                   r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                   g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                   b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                   if (r > 0xff) r = 0xff;
                   if (g > 0xff) g = 0xff;
                   if (b > 0xff) b = 0xff;
-                  
                   pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -4497,6 +4551,7 @@ void DrawSpritesWindow(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -4504,20 +4559,25 @@ void DrawSpritesWindow(int32_t priority)
                     uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                     uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                     uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                     uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                     b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-              
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -4548,6 +4608,7 @@ void DrawSpritesWindow(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -4564,7 +4625,16 @@ void DrawSpritesWindow(int32_t priority)
                     if (b > 0xff) b = 0xff;
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -4618,6 +4688,7 @@ void DrawSpritesWindow(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -4632,10 +4703,18 @@ void DrawSpritesWindow(int32_t priority)
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -4668,6 +4747,7 @@ void DrawSpritesWindow(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -4679,14 +4759,21 @@ void DrawSpritesWindow(int32_t priority)
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                     b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-                  
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5015,6 +5102,7 @@ void DrawSpritesWindowBlend(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5022,20 +5110,25 @@ void DrawSpritesWindowBlend(int32_t priority)
                     uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                     uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                     uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                     uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                     b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-              
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5066,6 +5159,7 @@ void DrawSpritesWindowBlend(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5081,8 +5175,17 @@ void DrawSpritesWindowBlend(int32_t priority)
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-      }
+                  }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5136,6 +5239,7 @@ void DrawSpritesWindowBlend(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5150,10 +5254,18 @@ void DrawSpritesWindowBlend(int32_t priority)
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5186,6 +5298,7 @@ void DrawSpritesWindowBlend(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5197,14 +5310,21 @@ void DrawSpritesWindowBlend(int32_t priority)
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                     b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-                  
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5254,6 +5374,7 @@ void DrawSpritesWindowBlend(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5265,14 +5386,21 @@ void DrawSpritesWindowBlend(int32_t priority)
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                     b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-                  
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5303,6 +5431,7 @@ void DrawSpritesWindowBlend(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5314,14 +5443,21 @@ void DrawSpritesWindowBlend(int32_t priority)
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                     b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-                  
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5375,6 +5511,7 @@ void DrawSpritesWindowBlend(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5393,7 +5530,16 @@ void DrawSpritesWindowBlend(int32_t priority)
                   
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5426,6 +5572,7 @@ void DrawSpritesWindowBlend(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5437,14 +5584,21 @@ void DrawSpritesWindowBlend(int32_t priority)
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                     b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-                  
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5609,6 +5763,7 @@ void DrawSpritesWindowBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5616,20 +5771,25 @@ void DrawSpritesWindowBrightInc(int32_t priority)
                     uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                     uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                     uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                     uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                     b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-              
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5660,6 +5820,7 @@ void DrawSpritesWindowBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5676,7 +5837,16 @@ void DrawSpritesWindowBrightInc(int32_t priority)
                     if (b > 0xff) b = 0xff;
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5730,6 +5900,7 @@ void DrawSpritesWindowBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5744,10 +5915,18 @@ void DrawSpritesWindowBrightInc(int32_t priority)
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5780,6 +5959,7 @@ void DrawSpritesWindowBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -5790,15 +5970,22 @@ void DrawSpritesWindowBrightInc(int32_t priority)
                     uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
-                    b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
+                    b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B                  
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-                  
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5850,13 +6037,17 @@ void DrawSpritesWindowBrightInc(int32_t priority)
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
-                  uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-                  uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-                  uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+                  uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+                  uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                  uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
                   r = r - ((r * blendY) >> 4);
                   g = g - ((g * blendY) >> 4);
                   b = b - ((b * blendY) >> 4);
-                  pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+                  pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
+                }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
                 }
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
@@ -5888,16 +6079,22 @@ void DrawSpritesWindowBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
-                  uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-                  uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-                  uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+                  uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+                  uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                  uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
                   r = r - ((r * blendY) >> 4);
                   g = g - ((g * blendY) >> 4);
                   b = b - ((b * blendY) >> 4);
-                  pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+                  pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5951,16 +6148,22 @@ void DrawSpritesWindowBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
-                  uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-                  uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-                  uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+                  uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+                  uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                  uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
                   r = r - ((r * blendY) >> 4);
                   g = g - ((g * blendY) >> 4);
                   b = b - ((b * blendY) >> 4);
-                  pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+                  pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -5993,16 +6196,22 @@ void DrawSpritesWindowBrightInc(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
-                  uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-                  uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-                  uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+                  uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+                  uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                  uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
                   r = r - ((r * blendY) >> 4);
                   g = g - ((g * blendY) >> 4);
                   b = b - ((b * blendY) >> 4);
-                  pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+                  pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -6167,6 +6376,7 @@ void DrawSpritesWindowBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -6174,20 +6384,25 @@ void DrawSpritesWindowBrightDec(int32_t priority)
                     uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
                     uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
                     uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-  
                     uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-  
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                     b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-              
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -6218,6 +6433,7 @@ void DrawSpritesWindowBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -6234,7 +6450,16 @@ void DrawSpritesWindowBrightDec(int32_t priority)
                     if (b > 0xff) b = 0xff;
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -6288,6 +6513,7 @@ void DrawSpritesWindowBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -6302,10 +6528,18 @@ void DrawSpritesWindowBrightDec(int32_t priority)
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -6338,6 +6572,7 @@ void DrawSpritesWindowBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
                   if ((Blend[i & 0x1ff] & blendTarget) != 0 && Blend[i & 0x1ff] != blendMaskType)
@@ -6349,14 +6584,21 @@ void DrawSpritesWindowBrightDec(int32_t priority)
                     r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
                     g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
                     b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                  
                     if (r > 0xff) r = 0xff;
                     if (g > 0xff) g = 0xff;
                     if (b > 0xff) b = 0xff;
-                  
                     pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                   }
+                  else
+                  {
+                    pixelColor = GBAToColor(pixelColor);
+                  }
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -6406,16 +6648,22 @@ void DrawSpritesWindowBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
-                  uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-                  uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-                  uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+                  uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+                  uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                  uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
                   r = r - ((r * blendY) >> 4);
                   g = g - ((g * blendY) >> 4);
                   b = b - ((b * blendY) >> 4);
-                  pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+                  pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -6446,16 +6694,22 @@ void DrawSpritesWindowBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
-                  uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-                  uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-                  uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+                  uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+                  uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                  uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
                   r = r - ((r * blendY) >> 4);
                   g = g - ((g * blendY) >> 4);
                   b = b - ((b * blendY) >> 4);
-                  pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+                  pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -6509,16 +6763,22 @@ void DrawSpritesWindowBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
-                  uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-                  uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-                  uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+                  uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+                  uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                  uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
                   r = r - ((r * blendY) >> 4);
                   g = g - ((g * blendY) >> 4);
                   b = b - ((b * blendY) >> 4);
-                  pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+                  pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -6551,16 +6811,22 @@ void DrawSpritesWindowBrightDec(int32_t priority)
               if (lookup != 0)
               {
                 uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
+                
                 if ((windowCover[i & 0x1ff] & (1 << 5)) != 0)
                 {
-                  uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-                  uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-                  uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+                  uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+                  uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                  uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
                   r = r - ((r * blendY) >> 4);
                   g = g - ((g * blendY) >> 4);
                   b = b - ((b * blendY) >> 4);
-                  pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+                  pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
                 }
+                else
+                {
+                  pixelColor = GBAToColor(pixelColor);
+                }
+                
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
               }
@@ -6669,6 +6935,7 @@ void RenderRotScaleBgBlend(int32_t bg)
         if (lookup != 0)
         {
           uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          
           if ((Blend[i] & blendTarget) != 0)
           {
             uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
@@ -6685,6 +6952,11 @@ void RenderRotScaleBgBlend(int32_t bg)
                   
             pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor); 
           Blend[i] = blendMaskType;
         }
@@ -6796,13 +7068,13 @@ void RenderRotScaleBgBrightDec(int32_t bg)
         if (lookup != 0)
         {
           uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
-          uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-          uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-          uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+          uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+          uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+          uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
           r = r - ((r * blendY) >> 4);
           g = g - ((g * blendY) >> 4);
           b = b - ((b * blendY) >> 4);
-          pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+          pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
           DrawPixel(curLine, i, pixelColor); 
           Blend[i] = blendMaskType;
         }
@@ -6860,7 +7132,6 @@ void RenderRotScaleBgWindow(int32_t bg)
         }
       }
     }
-
     x += dx;
     y += dy;
   }
@@ -6915,7 +7186,9 @@ void RenderRotScaleBgWindowBlend(int32_t bg)
               uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
               uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
               uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
+              
               uint16_t sourceValue = tft.dgetPixel(curLine, i);
+              
               r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
               g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
               b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
@@ -6926,6 +7199,11 @@ void RenderRotScaleBgWindowBlend(int32_t bg)
                   
               pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
             }
+            else
+            {
+              pixelColor = GBAToColor(pixelColor);
+            }
+            
             DrawPixel(curLine, i, pixelColor); 
             Blend[i] = blendMaskType;
           }
@@ -6979,16 +7257,22 @@ void RenderRotScaleBgWindowBrightInc(int32_t bg)
         if (lookup != 0)
         {
           uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          
           if ((windowCover[i] & (1 << 5)) != 0)
           {
-            uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-            uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-            uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
             r = r - ((r * blendY) >> 4);
             g = g - ((g * blendY) >> 4);
             b = b - ((b * blendY) >> 4);
-            pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor); 
           Blend[i] = blendMaskType;
         }
@@ -7041,16 +7325,22 @@ void RenderRotScaleBgWindowBrightDec(int32_t bg)
         if (lookup != 0)
         {
           uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          
           if ((windowCover[i] & (1 << 5)) != 0)
           {
-            uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-            uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-            uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
             r = r - ((r * blendY) >> 4);
             g = g - ((g * blendY) >> 4);
             b = b - ((b * blendY) >> 4);
-            pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
           }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
           DrawPixel(curLine, i, pixelColor); 
           Blend[i] = blendMaskType;
         }
@@ -7063,6 +7353,9 @@ void RenderRotScaleBgWindowBrightDec(int32_t bg)
 
 uint16_t GBAToColor(uint16_t color)
 {
+  //In GBA Color Formar 555 BGR
+  //Out ILI Color Format 565 RGB
+  
   uint8_t r = (uint8_t)((color) & 0x1F);       //First 5 Bits
   uint8_t g = (uint8_t)((color >> 5) & 0x1F);  //Middle 5 Bits
   uint8_t b = (uint8_t)(color >> 10) & 0x1F;   //Last 5 Bits
@@ -7103,6 +7396,7 @@ void DrawPixel(uint16_t y, uint16_t x, int16_t color) //Stretch Image every seco
       }
     }  
 }
+
 
 
 
