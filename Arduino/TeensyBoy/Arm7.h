@@ -197,10 +197,8 @@ class Processor
     void WriteDmaControl(uint8_t channel);
     void WriteTimerControl(uint32_t timer, uint32_t newCnt);
     uint32_t ReadUnreadable();
-    void ResetRomBank1();
-    void ResetRomBank2();
+    void ResetRomBanks();
     void LoadCartridge();
-    void EnableVramUpdating();
 
     uint8_t  ReadBIOS8(uint32_t address);
     uint16_t ReadBIOS16(uint32_t address);

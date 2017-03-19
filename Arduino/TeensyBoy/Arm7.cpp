@@ -47,7 +47,6 @@ uint8_t RomBankCount = 0;
 
 const uint8_t VramBlockSize = 64;
 const uint8_t PalBlockSize = 32;
-
 bool EnableVRUpdating = true;
 
 //----------------------------CPU-----------------------//
@@ -605,7 +604,7 @@ uint32_t Processor::ReadROM32(uint32_t address, uint8_t bank)
 uint8_t Processor::ReadBIOS8(uint32_t address)
 {
   waitCycles++;
-  //Serial.println("Read Bios 8:" + String(address, DEC));
+  
   if(registers[15] < 0x01000000)
   {
     return BIOS[address & biosRamMask];
@@ -619,9 +618,7 @@ uint16_t Processor::ReadBIOS16(uint32_t address)
   waitCycles++;
   if(registers[15] < 0x01000000)
   {
-    uint16_t tmp = (uint16_t)(BIOS[address & biosRamMask] | (BIOS[(address & biosRamMask) + 1] << 8));
-    //Serial.println("Read Bios 16:" + String(address, DEC) + " = " + String(tmp, DEC));
-    return tmp;
+    return (uint16_t)(BIOS[address & biosRamMask] | (BIOS[(address & biosRamMask) + 1] << 8));
   }
 
   return (uint16_t)(ReadUnreadable() & 0xFFFF);
@@ -632,9 +629,7 @@ uint32_t Processor::ReadBIOS32(uint32_t address)
   waitCycles++;
   if(registers[15] < 0x01000000)
   {
-    uint32_t tmp = (uint32_t)(BIOS[address & biosRamMask] | (BIOS[(address & biosRamMask) + 1] << 8) | (BIOS[(address & biosRamMask) + 2] << 16) | (BIOS[(address & biosRamMask) + 3] << 24));
-    //Serial.println("Read Bios 32:" + String(address, DEC) + " = " + String(tmp, DEC));
-    return tmp;
+    return (uint32_t)(BIOS[address & biosRamMask] | (BIOS[(address & biosRamMask) + 1] << 8) | (BIOS[(address & biosRamMask) + 2] << 16) | (BIOS[(address & biosRamMask) + 3] << 24));
   }
 
   return ReadUnreadable();
@@ -644,7 +639,6 @@ uint8_t Processor::ReadEwRam8(uint32_t address)
 {
   waitCycles += 3;
   address = (address & ewRamMask);
-  //Serial.println("Read EW 8:" + String(address, DEC));
   return SPIRAMRead(ewRamStart + address);
 }
 
@@ -652,7 +646,6 @@ uint16_t Processor::ReadEwRam16(uint32_t address)
 {
   waitCycles += 3;
   address = (address & ewRamMask);
-  //Serial.println("Read EW 16:" + String(address, DEC));
   return ReadU16(address, ewRamStart);
 }
 
@@ -660,7 +653,6 @@ uint32_t Processor::ReadEwRam32(uint32_t address)
 {
   waitCycles += 6;
   address = (address & ewRamMask);
-  //Serial.println("Read EW 32:" + String(address, DEC));
   return ReadU32(address, ewRamStart);
 }
 
@@ -668,7 +660,6 @@ uint8_t Processor::ReadIwRam8(uint32_t address)
 {
   waitCycles++;
   address = (address & iwRamMask);
-  //Serial.println("Read IW 8:" + String(address, DEC));
   return SPIRAMRead(iwRamStart + address);
 }
 
@@ -676,7 +667,6 @@ uint16_t Processor::ReadIwRam16(uint32_t address)
 {
   waitCycles++;
   address = (address & iwRamMask);
-  //Serial.println("Read IW 16:" + String(address, DEC));
   return ReadU16(address, iwRamStart);
 }
 
@@ -684,7 +674,6 @@ uint32_t Processor::ReadIwRam32(uint32_t address)
 {
   waitCycles++;
   address = (address & iwRamMask);
-  //Serial.println("Read IW 32:" + String(address, DEC));
   return ReadU32(address, iwRamStart);
 }
 
@@ -692,7 +681,6 @@ uint8_t Processor::ReadIO8(uint32_t address)
 {
   waitCycles++;
   address &= 0xFFFFFF;
-  //Serial.println("Read IO 8:" + String(address, DEC));
 
   if(address >= ioRegMask) return 0;
 
@@ -754,7 +742,6 @@ uint16_t Processor::ReadIO16(uint32_t address)
 {
   waitCycles++;
   address &= 0xFFFFFF;
-  //Serial.println("Read IO 16:" + String(address, DEC));
 
   if(address >= ioRegMask) return 0;
 
@@ -793,8 +780,7 @@ uint32_t Processor::ReadIO32(uint32_t address)
 {
   waitCycles++;
   address &= 0xFFFFFF;
-  //Serial.println("Read IO 32:" + String(address, DEC));
-
+  
   if(address >= ioRegMask) return 0;
 
   switch (address)
@@ -832,7 +818,6 @@ uint8_t Processor::ReadPalRam8(uint32_t address)
 {
   waitCycles++;
   address = (address & palRamMask);
-  //Serial.println("Read PAL 8:" + String(address, DEC));
   return SPIRAMRead(palRamStart + address);
 }
 
@@ -840,7 +825,6 @@ uint16_t Processor::ReadPalRam16(uint32_t address)
 {
   waitCycles++;
   address = (address & palRamMask);
-  //Serial.println("Read PAL 16:" + String(address, DEC));
   return ReadU16(address, palRamStart);
 }
 
@@ -848,14 +832,12 @@ uint32_t Processor::ReadPalRam32(uint32_t address)
 {
   waitCycles += 2;
   address = (address & palRamMask);
-  //Serial.println("Read PAL 32:" + String(address, DEC));
   return ReadU32(address, palRamStart);
 }
 
 uint8_t Processor::ReadVRam8(uint32_t address)
 {
   waitCycles++;
-  //Serial.println("Read VR 8:" + String(address, DEC));
   address &= vRamMask;
   if (address > 0x17FFF) address = 0x10000 + ((address - 0x17FFF) & 0x7FFF);
   return SPIRAMRead(vRamStart + address);
@@ -864,7 +846,6 @@ uint8_t Processor::ReadVRam8(uint32_t address)
 uint16_t Processor::ReadVRam16(uint32_t address)
 {
   waitCycles++;
-  //Serial.println("Read VR 16:" + String(address, DEC));
   address &= vRamMask;
   if (address > 0x17FFF) address = 0x10000 + ((address - 0x17FFF) & 0x7FFF);
   return ReadU16(address, vRamStart);
@@ -873,7 +854,6 @@ uint16_t Processor::ReadVRam16(uint32_t address)
 uint32_t Processor::ReadVRam32(uint32_t address)
 {
   waitCycles += 2;
-  //Serial.println("Read VR 32:" + String(address, DEC));
   address = (address & vRamMask);
   if (address > 0x17FFF) address = 0x10000 + ((address - 0x17FFF) & 0x7FFF);
   return ReadU32(address, vRamStart);
@@ -902,45 +882,41 @@ uint32_t Processor::ReadOamRam32(uint32_t address)
 
 uint8_t Processor::ReadSRam8(uint32_t address)
 {
-  //Serial.println("Read SR 8:" + String(address, DEC));
   address = (address & sRamMask);
   return SPIRAMRead(sRamStart + address);
 }
 
 uint16_t Processor::ReadSRam16(uint32_t address)
 {
-  //Serial.println("Read SR 16:" + String(address, DEC));
   address = (address & sRamMask);
   return ReadU16(address, sRamStart);
 }
 
 uint32_t Processor::ReadSRam32(uint32_t address)
 {
-  //Serial.println("Read SR 32:" + String(address, DEC));
   address = (address & sRamMask);
   return ReadU32(address, sRamStart);
 }
 
 void Processor::WriteNop8(uint32_t address, uint8_t value)
 {
-  //Serial.println("Write NOP 8:" + String(address, DEC) + ", " + String(value, DEC));
+
 }
 
 void Processor::WriteNop16(uint32_t address, uint16_t value)
 {
-  //Serial.println("Write NOP 16:" + String(address, DEC) + ", " + String(value, DEC));
+
 }
 
 void Processor::WriteNop32(uint32_t address, uint32_t value)
 {
-  //Serial.println("Write NOP 32:" + String(address, DEC) + ", " + String(value, DEC));
+
 }
 
 void Processor::WriteEwRam8(uint32_t address, uint8_t value)
 {
   waitCycles += 3;
   address = (address & ewRamMask);
-  //Serial.println("Write EW 8:" + String(address, DEC) + ", " + String(value, DEC));
   SPIRAMWrite((ewRamStart + address), value);
 }
 
@@ -948,7 +924,6 @@ void Processor::WriteEwRam16(uint32_t address, uint16_t value)
 {
   waitCycles += 3;
   address = (address & ewRamMask);
-  //Serial.println("Write EW 16:" + String(address, DEC) + ", " + String(value, DEC));
   WriteU16(address, ewRamStart, value);
 }
 
@@ -956,7 +931,6 @@ void Processor::WriteEwRam32(uint32_t address, uint32_t value)
 {
   waitCycles += 6;
   address = (address & ewRamMask);
-  //Serial.println("Write EW 32:" + String(address, DEC) + ", " + String(value, DEC));
   WriteU32(address, ewRamStart, value);
 }
 
@@ -964,7 +938,6 @@ void Processor::WriteIwRam8(uint32_t address, uint8_t value)
 {
   waitCycles++;
   address = (address & iwRamMask);
-  //Serial.println("Write IW 8:" + String(address, DEC) + ", " + String(value, DEC));
   SPIRAMWrite((iwRamStart + address), value);
 }
 
@@ -972,7 +945,6 @@ void Processor::WriteIwRam16(uint32_t address, uint16_t value)
 {
   waitCycles++;
   address = (address & iwRamMask);
-  //Serial.println("Write IW 16:" + String(address, DEC) + ", " + String(value, DEC));
   WriteU16(address, iwRamStart, value);
 }
 
@@ -980,7 +952,6 @@ void Processor::WriteIwRam32(uint32_t address, uint32_t value)
 {
   waitCycles++;
   address = (address & iwRamMask);
-  //Serial.println("Write IW 32:" + String(address, DEC) + ", " + String(value, DEC));
   WriteU32(address, iwRamStart, value);
 }
 
@@ -988,7 +959,6 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
 {
   waitCycles++;
   address &= 0xFFFFFF;
-  //Serial.println("Write IO 8:" + String(address, DEC) + ", " + String(value, DEC));
   
   if(address >= ioRegMask) return;
 
@@ -1155,7 +1125,6 @@ void Processor::WriteIO16(uint32_t address, uint16_t value)
 {
   waitCycles++;
   address &= 0xFFFFFF;
-  //Serial.println("Write IO 16:" + String(address, DEC) + ", " + String(value, DEC));
 
   if(address >= ioRegMask) return;
 
@@ -1315,7 +1284,6 @@ void Processor::WriteIO32(uint32_t address, uint32_t value)
 {
   waitCycles++;
   address &= 0xFFFFFF;
-  //Serial.println("Write IO 32:" + String(address, DEC) + ", " + String(value, DEC));
 
   if(address >= ioRegMask) return;
   
@@ -1470,7 +1438,6 @@ void Processor::WriteIO32(uint32_t address, uint32_t value)
 void Processor::WritePalRam8(uint32_t address, uint8_t value)
 {
   waitCycles++;
-  //Serial.println("Write PAL 8:" + String(address, DEC) + ", " + String(value, DEC));
   address &= palRamMask & ~1U;
   SPIRAMWrite((palRamStart + address), value);
   SPIRAMWrite((palRamStart + address) + 1, value);
@@ -1480,7 +1447,6 @@ void Processor::WritePalRam16(uint32_t address, uint16_t value)
 {
   waitCycles++;
   address = (address & palRamMask);
-  //Serial.println("Write PAL 16:" + String(address, DEC) + ", " + String(value, DEC));
   WriteU16(address, palRamStart, value);
 }
 
@@ -1488,14 +1454,12 @@ void Processor::WritePalRam32(uint32_t address, uint32_t value)
 {
   waitCycles += 2;
   address = (address & palRamMask);
-  //Serial.println("Write PAL 32:" + String(address, DEC) + ", " + String(value, DEC));
   WriteU32(address, palRamStart, value);
 }
 
 void Processor::WriteVRam8(uint32_t address, uint8_t value)
 {
   waitCycles++;
-  //Serial.println("Write VR 8:" + String(address, DEC) + ", " + String(value, DEC));
   address &= vRamMask & ~1U;
   if (address > 0x17FFF) address = 0x10000 + ((address - 0x17FFF) & 0x7FFF);
   SPIRAMWrite((vRamStart + address), value);
@@ -1505,7 +1469,6 @@ void Processor::WriteVRam8(uint32_t address, uint8_t value)
 void Processor::WriteVRam16(uint32_t address, uint16_t value)
 {
   waitCycles++;
-  //Serial.println("Write VR 16:" + String(address, DEC) + ", " + String(value, DEC));
   address = (address & vRamMask);
   if (address > 0x17FFF) address = 0x10000 + ((address - 0x17FFF) & 0x7FFF);
   WriteU16(address, vRamStart, value);
@@ -1514,7 +1477,6 @@ void Processor::WriteVRam16(uint32_t address, uint16_t value)
 void Processor::WriteVRam32(uint32_t address, uint32_t value)
 {
   waitCycles += 2;
-  //Serial.println("Write VR 32:" + String(address, DEC) + ", " + String(value, DEC));
   address &= vRamMask;
   if (address > 0x17FFF) address = 0x10000 + ((address - 0x17FFF) & 0x7FFF);
   WriteU32(address, vRamStart, value);
@@ -1524,8 +1486,6 @@ void Processor::WriteOamRam8(uint32_t address, uint8_t value)
 {
   waitCycles++;
   address &= oamRamMask & ~1U;
-  //Serial.println("Write OAM 8:" + String(address, DEC) + " = " + String(value, DEC));
-  //Serial.println("OAM Write 8: " + String(address, DEC) + " = " + String(value, DEC));
   OAMRAM[address] = value;
   OAMRAM[address + 1] = value;
 }
@@ -1534,7 +1494,6 @@ void Processor::WriteOamRam16(uint32_t address, uint16_t value)
 {
   waitCycles++;
   address = (address & oamRamMask);
-  //Serial.println("OAM Write 16:" + String(address, DEC) + " = " + String(value, DEC));
   WriteU16(address, oamRamStart, value);
 }
 
@@ -1542,7 +1501,6 @@ void Processor::WriteOamRam32(uint32_t address, uint32_t value)
 {
   waitCycles++;
   address = (address & oamRamMask);
-  //Serial.println("OAM Write 32:" + String(address, DEC) + " = " + String(value, DEC));
   WriteU32(address, oamRamStart, value);
 }
 
@@ -1550,19 +1508,16 @@ void Processor::WriteSRam8(uint32_t address, uint8_t value)
 {
   waitCycles++;
   address = (address & sRamMask);
-  //Serial.println("Write SR 8:" + String(address, DEC) + ", " + String(value, DEC));
   SPIRAMWrite((sRamStart + address), value);
 }
 
 void Processor::WriteSRam16(uint32_t address, uint16_t value)
 {
-  //Serial.println("Write SR 16:" + String(address, DEC) + ", " + String(value, DEC));
   //TODO
 }
 
 void Processor::WriteSRam32(uint32_t address, uint32_t value)
 {
-  //Serial.println("Write SR 32:" + String(address, DEC) + ", " + String(value, DEC));
   //TODO
 }
 
@@ -1573,7 +1528,6 @@ uint8_t eepromStore[0xFF];
 
 void Processor::WriteEeprom8(uint32_t address, uint8_t value)
 {
-  //Serial.println("Write EE 8:" + String(address, DEC) + ", " + String(value, DEC));
   //EEPROM writes must be done my DMA 3
   if((dmaRegs[3][3] & (1 << 15)) == 0) return;
 
@@ -1644,19 +1598,16 @@ void Processor::WriteEeprom8(uint32_t address, uint8_t value)
 
 void Processor::WriteEeprom16(uint32_t address, uint16_t value)
 {
-  //Serial.println("Write EE 16:" + String(address, DEC) + ", " + String(value, DEC));
   WriteEeprom8(address, (uint16_t)(value & 0xFF));
 }
 
 void Processor::WriteEeprom32(uint32_t address, uint32_t value)
 {
-  //Serial.println("Write EE 32:" + String(address, DEC) + ", " + String(value, DEC));
   WriteEeprom8(address, (uint16_t)(value & 0xFF));
 }
 
 uint8_t Processor::ReadEeprom8(uint32_t address)
 {
-  //Serial.println("Read EE 8:" + String(address, DEC));
   if (eepromReadAddress == -1) return 1;
 
   uint8_t retval = 0;
@@ -1680,20 +1631,17 @@ uint8_t Processor::ReadEeprom8(uint32_t address)
 
 uint16_t Processor::ReadEeprom16(uint32_t address)
 {
-  //Serial.println("Read EE 16:" + String(address, DEC));
   return (uint16_t)ReadEeprom8(address);
 }
 
 uint32_t Processor::ReadEeprom32(uint32_t address)
 {
-  //Serial.println("REad EE 32:" + String(address, DEC));
   return (uint32_t)ReadEeprom8(address);
 }
 
 void Processor::ShaderWritePalRam8(uint32_t address, uint8_t value)
 {
   waitCycles++;
-  //Serial.println("Write Shader PAL 8:" + String(address, DEC) + ", " + String(value, DEC));
   address &= palRamMask & ~1U;
   WriteU8(address, palRamStart, value);
   WriteU8(address + 1, palRamStart, value);
@@ -1702,21 +1650,18 @@ void Processor::ShaderWritePalRam8(uint32_t address, uint8_t value)
 void Processor::ShaderWritePalRam16(uint32_t address, uint16_t value)
 {
   waitCycles++;
-  //Serial.println("Write Shader PAL 16:" + String(address, DEC) + ", " + String(value, DEC));
   WriteU16(address & palRamMask, palRamStart, value);
 }
 
 void Processor::ShaderWritePalRam32(uint32_t address, uint32_t value)
 {
   waitCycles+=2;
-  //Serial.println("Write Shader PAL 32:" + String(address, DEC) + ", " + String(value, DEC));
   WriteU32(address & palRamMask, palRamStart, value);
 }
 
 void Processor::ShaderWriteVRam8(uint32_t address, uint8_t value)
 {
   waitCycles++;
-  //Serial.println("Write Shader VR 8:" + String(address, DEC) + ", " + String(value, DEC));
   address &= vRamMask & ~1U;
   if (address > 0x17FFF) address = 0x10000 + ((address - 0x17FFF) & 0x7FFF);
   WriteU8(address, vRamStart, value);
@@ -1726,7 +1671,6 @@ void Processor::ShaderWriteVRam8(uint32_t address, uint8_t value)
 void Processor::ShaderWriteVRam16(uint32_t address, uint16_t value)
 {
   waitCycles++;
-  //Serial.println("Write Shader VR 16:" + String(address, DEC) + ", " + String(value, DEC));
   address &= vRamMask;
   if (address > 0x17FFF) address = 0x10000 + ((address - 0x17FFF) & 0x7FFF);
   WriteU16(address, vRamStart, value);
@@ -1735,15 +1679,9 @@ void Processor::ShaderWriteVRam16(uint32_t address, uint16_t value)
 void Processor::ShaderWriteVRam32(uint32_t address, uint32_t value)
 {
   waitCycles += 2;
-  //Serial.println("Write Shader VR 32:" + String(address, DEC) + ", " + String(value, DEC));
   address &= vRamMask;
   if (address > 0x17FFF) address = 0x10000 + ((address - 0x17FFF) & 0x7FFF);
   WriteU32(address, vRamStart, value);
-}
-
-void Processor::EnableVramUpdating()
-{
-  EnableVRUpdating = true;
 }
 
 uint8_t Processor::ReadU8(uint32_t address, uint32_t RAMRange)
@@ -1762,8 +1700,6 @@ uint8_t Processor::ReadU8(uint32_t address, uint32_t RAMRange)
   {
     tmp = SPIRAMRead(RAMRange + address);
   }
-
-  //Serial.println("ReadU8: " + String(address, DEC) + " = " + String(tmp, DEC));
 
   return tmp;
 }
@@ -1785,8 +1721,6 @@ uint16_t Processor::ReadU16(uint32_t address, uint32_t RAMRange)
     tmp = (uint16_t)(SPIRAMRead(RAMRange + address) | (SPIRAMRead(RAMRange + address + 1) << 8));
   }
   
-  //Serial.println("ReadU16: " + String(address, DEC) + " = " + String(tmp, DEC));
-  
   return tmp;
 }
 
@@ -1806,9 +1740,7 @@ uint32_t Processor::ReadU32(uint32_t address, uint32_t RAMRange)
   {
     tmp =  (uint32_t)(SPIRAMRead(RAMRange + address) | (SPIRAMRead(RAMRange + address + 1) << 8) | (SPIRAMRead(RAMRange + address + 2) << 16) | (SPIRAMRead(RAMRange + address + 3) << 24));
   }
-
-  //Serial.println("ReadU32: " + String(address, DEC) + " = " + String(tmp, DEC));
-
+   
   return tmp;
 }
 
@@ -2032,28 +1964,23 @@ uint32_t Processor::ReadUnreadable()
   return res;
 }
 
-void Processor::ResetRomBank1()
+void Processor::ResetRomBanks()
 {
   romBank1Mask = 0;
-
+  romBank2Mask = 0;
+    
   for(uint8_t i = 0; i < (sizeof(bankSTimes)/sizeof(uint32_t)); i++)
   {
     bankSTimes[i] = 2;
   }
 
   RomBankCount = 0;
-}
-
-void Processor::ResetRomBank2()
-{
-  romBank2Mask = 0;
   RomBankCount = 0;
 }
 
 void Processor::LoadCartridge()
 {
-  ResetRomBank1();
-  ResetRomBank2();
+  ResetRomBanks();
   
   uint64_t ROMSize = ROM->size();
   uint64_t cartSize = 1;
@@ -2427,18 +2354,14 @@ void Processor::WriteU32Funcs(uint16_t bank, uint32_t address, uint32_t value)
 uint8_t Processor::ReadU8(uint32_t address)
 {
   uint16_t bank = (address >> 24) & 0xf;
-  uint8_t tmp =  ReadU8Funcs(bank, address);
-  //Serial.println("ReadU8: " + String(address, DEC) + " = " + String(tmp, DEC));
-  return tmp;
+  return ReadU8Funcs(bank, address);
 }
 
 uint16_t Processor::ReadU16(uint32_t address)
 {
   address &= ~1;
   uint16_t bank = (address >> 24) & 0xf;
-  uint16_t tmp =  ReadU16Funcs(bank, address);
-  //Serial.println("ReadU16: " + String(address, DEC) + " = " + String(tmp, DEC));
-  return tmp;
+  return ReadU16Funcs(bank, address);
 }
 
  uint32_t Processor::ReadU32(uint32_t address)
@@ -2447,19 +2370,13 @@ uint16_t Processor::ReadU16(uint32_t address)
   address &= ~3;
   uint16_t bank = (address >> 24) & 0xf;
   uint32_t res = ReadU32Funcs(bank, address);
-  uint32_t tmp = (res >> shiftAmt) | (res << (32 - shiftAmt));
-  //Serial.println("ReadU32: " + String(address, DEC) + " = " + String(tmp, DEC));
-  return tmp;
+  return (res >> shiftAmt) | (res << (32 - shiftAmt));
 }
 
 uint32_t Processor::ReadU32Aligned(uint32_t address)
 {
   uint16_t bank = (address >> 24) & 0xf;
-  uint32_t tmp = ReadU32Funcs(bank, address);
-  //Serial.println("Bank: " + String(bank, DEC) + " Address: " + String(address, HEX) + " Value: " + String(tmp, DEC));
-  //Serial.println("");
-  //Serial.println("ReadU32Aligned: " + String(address, DEC) + " = " + String(tmp, DEC));
-  return tmp;
+  return ReadU32Funcs(bank, address);
 }
 
 uint16_t Processor::ReadU16Debug(uint32_t address)
@@ -2467,11 +2384,8 @@ uint16_t Processor::ReadU16Debug(uint32_t address)
   address &= ~1;
   uint16_t bank = (address >> 24) & 0xf;
   uint32_t oldWaitCycles = waitCycles;
-  //Serial.println("Bank" + String(bank, DEC));
-  //Serial.println("Address" + String(address, DEC));
   uint16_t res = ReadU16Funcs(bank, address);
   waitCycles = oldWaitCycles;
-  //Serial.println("ReadU16Debug: " + String(address, DEC) + " = " + String(res, DEC));
   return res;
 }
 
@@ -2484,14 +2398,12 @@ uint32_t Processor::ReadU32Debug(uint32_t address)
   uint32_t res = ReadU32Funcs(bank, address);
   waitCycles = oldWaitCycles;
   uint32_t tmp = (res >> shiftAmt) | (res << (32 - shiftAmt));
-  //Serial.println("ReadU32Debug: " + String(address, DEC) + " = " + String(tmp, DEC));
   return tmp;
 }
 
 void Processor::WriteU8(uint32_t address, uint8_t value)
 {
   uint16_t bank = (address >> 24) & 0xf;
-  //Serial.println("WriteU8: " + String(address, DEC) + " = " + String(value, DEC));
   WriteU8Funcs(bank, address, value);
 }
 
@@ -2499,7 +2411,6 @@ void Processor::WriteU16(uint32_t address, uint16_t value)
 {
   address &= ~1;
   uint16_t bank = (address >> 24) & 0xf;
-  //Serial.println("WriteU16: " + String(address, DEC) + " = " + String(value, DEC));
   WriteU16Funcs(bank, address, value);
 }
 
@@ -2507,7 +2418,6 @@ void Processor::WriteU32(uint32_t address, uint32_t value)
 {
   address &= ~3;
   uint16_t bank = (address >> 24) & 0xf;
-  //Serial.println("WriteU32: " + String(address, DEC) + " = " + String(value, DEC));
   WriteU32Funcs(bank, address, value);
 }
 
@@ -2515,7 +2425,6 @@ void Processor::WriteU8Debug(uint32_t address, uint8_t value)
 {
   uint16_t bank = (address >> 24) & 0xf;
   uint32_t oldWaitCycles = waitCycles;
-  //Serial.println("WriteU8Debug: " + String(address, DEC) + " = " + String(value, DEC));
   WriteU8Funcs(bank, address, value);
   waitCycles = oldWaitCycles;
 }
@@ -2525,7 +2434,6 @@ void Processor::WriteU16Debug(uint32_t address, uint16_t value)
   address &= ~1;
   uint16_t bank = (address >> 24) & 0xf;
   uint32_t oldWaitCycles = waitCycles;
-  //Serial.println("WriteU16Debug: " + String(address, DEC) + " = " + String(value, DEC));
   WriteU16Funcs(bank, address, value);
   waitCycles = oldWaitCycles;
 }
@@ -2535,14 +2443,12 @@ void Processor::WriteU32Debug(uint32_t address, uint32_t value)
   address &= ~3;
   uint16_t bank = (address >> 24) & 0xf;
   uint32_t oldWaitCycles = waitCycles;
-  //Serial.println("WriteU32Debug: " + String(address, DEC) + " = " + String(value, DEC));
   WriteU32Funcs(bank, address, value);
   waitCycles = oldWaitCycles;
 }
 
 void Processor::WriteU8(uint32_t address, uint32_t RAMRange, uint8_t value)
 {
-  //Serial.println("OAM WriteU8: " + String(address, DEC) + " = " + String(value, DEC) + " " + String(RAMRange, HEX));
   if(RAMRange == oamRamStart)
   {
     OAMRAM[address] = value;
@@ -2559,7 +2465,6 @@ void Processor::WriteU8(uint32_t address, uint32_t RAMRange, uint8_t value)
 
 void Processor::WriteU16(uint32_t address, uint32_t RAMRange, uint16_t value)
 {
-  //Serial.println("WriteU16: " + String(address, DEC) + " = " + String(value, DEC) + " " + String(RAMRange, HEX));
   if(RAMRange == oamRamStart)
   {
     OAMRAM[address] = (uint8_t)(value & 0xFF);
@@ -2579,7 +2484,6 @@ void Processor::WriteU16(uint32_t address, uint32_t RAMRange, uint16_t value)
 
 void Processor::WriteU32(uint32_t address, uint32_t RAMRange, uint32_t value)
 {
-  //Serial.println("WriteU32: " + String(address, DEC) + " = " + String(value, DEC) + " " + String(RAMRange, HEX));
   if(RAMRange == oamRamStart)
   {
     OAMRAM[address] = (uint8_t)(value & 0xFF);

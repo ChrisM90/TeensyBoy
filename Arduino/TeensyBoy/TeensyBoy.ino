@@ -36,7 +36,7 @@ File FROM;
 #define SCREEN_HEIGHT ILI9341_TFTHEIGHT
 #define TFT_DC      15
 #define TFT_CS      10
-#define TFT_RST     28
+#define TFT_RST     27
 #define TFT_MOSI    11
 #define TFT_SCLK    13
 #define TFT_MISO    12
@@ -84,10 +84,9 @@ void setup()
   tft.begin();
   tft.dfillScreen(ILI9341_BLACK);
   tft.refreshOnce();
-  //tft.refresh();
   
   SD.begin(BUILTIN_SDCARD);
-  FROM = SD.open("/PE/PE.gba", FILE_READ);
+  FROM = SD.open("/MK/MK.gba", FILE_READ);
 
   processor.CreateCores(&processor, &FROM);
   Serial.println("Init Complete");
@@ -159,6 +158,8 @@ void loop()
     vramCycles -= cycleStep;
 
     processor.FireIrq();
+
+    //Serial.println("Loop: " + String(loopcount, DEC));
 
     loopcount++;
   }
