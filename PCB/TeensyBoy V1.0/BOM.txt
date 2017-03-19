@@ -1,0 +1,33 @@
+Part     Value          Package
+
+A        DTS-3          DTS-3
+B        DTS-3          DTS-3
+C1       100nf          C0603K
+C2       10uf           C0603K
+C3       10uf           C0603K
+C4       220nf          C0603K
+C5       330nf          C0603K
+DOWN     DTS-3          DTS-3
+JP1                     1X10
+LEFT     DTS-3          DTS-3
+Q1       2N2222A        TO18
+R1       1K             R0603
+R2       4K7            R0603
+R3       10K            R0603
+R4       10K            R0603
+R5       10K            R0603
+R6       10K            R0603
+R7       10K            R0603
+R8       10K            R0603
+R9       10K            R0603
+R10      10K            R0603
+R11      100K           R0603
+R13      27K            CT6
+RIGHT    DTS-3          DTS-3
+SELECT   DTS-3          DTS-3
+SPK                     1X02
+START    DTS-3          DTS-3 
+U$1      AS7C34096A     AS7C34096A
+U$2                     TEENSY-3.6_FULL
+U1       LM4875         SO-8
+UP       DTS-3          DTS-3
