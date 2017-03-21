@@ -190,136 +190,117 @@ class Processor
     void Execute(int cycles);
 
     void Reset();
+    
     void HBlankDma();
     void VBlankDma();
     void FifoDma(uint8_t channel);
     void DmaTransfer(uint8_t channel);
     void WriteDmaControl(uint8_t channel);
     void WriteTimerControl(uint32_t timer, uint32_t newCnt);
+    
+    uint8_t ReadU8(uint32_t address, uint32_t RAMRange);
+    uint16_t ReadU16(uint32_t address, uint32_t RAMRange);
+    uint32_t ReadU32(uint32_t address, uint32_t RAMRange);
+    
+    void WriteU8(uint32_t address, uint32_t RAMRange, uint8_t value);
+    void WriteU16(uint32_t address, uint32_t RAMRange, uint16_t value);
+    void WriteU32(uint32_t address, uint32_t RAMRange, uint32_t value);
+    
     uint32_t ReadUnreadable();
-    void ResetRomBanks();
-    void LoadCartridge();
-
+    uint8_t ReadNop8(uint32_t address);
+    uint16_t ReadNop16(uint32_t address);
+    uint32_t ReadNop32(uint32_t address);
     uint8_t  ReadBIOS8(uint32_t address);
     uint16_t ReadBIOS16(uint32_t address);
     uint32_t ReadBIOS32(uint32_t address);
+    uint8_t ReadEwRam8(uint32_t address);
+    uint16_t ReadEwRam16(uint32_t address);
+    uint32_t ReadEwRam32(uint32_t address);
+    uint8_t ReadIwRam8(uint32_t address);
+    uint16_t ReadIwRam16(uint32_t address);
+    uint32_t ReadIwRam32(uint32_t address);
+    uint8_t ReadIO8(uint32_t address);
+    uint16_t ReadIO16(uint32_t address);
+    uint32_t ReadIO32(uint32_t address);
+    uint8_t ReadPalRam8(uint32_t address);
+    uint16_t ReadPalRam16(uint32_t address);
+    uint32_t ReadPalRam32(uint32_t address);
+    uint8_t ReadVRam8(uint32_t address);
+    uint16_t ReadVRam16(uint32_t address);
+    uint32_t ReadVRam32(uint32_t address);
+    uint8_t ReadOamRam8(uint32_t address);
+    uint16_t ReadOamRam16(uint32_t address);
+    uint32_t ReadOamRam32(uint32_t address);
+    uint8_t  ReadROM8(uint32_t address, uint8_t bank);
+    uint16_t ReadROM16(uint32_t address, uint8_t bank);
+    uint32_t ReadROM32(uint32_t address, uint8_t bank);
+    uint8_t ReadSRam8(uint32_t address);
+    uint16_t ReadSRam16(uint32_t address);
+    uint32_t ReadSRam32(uint32_t address);
+
+    void WriteNop8(uint32_t address, uint8_t value);
+    void WriteNop16(uint32_t address, uint16_t value);
+    void WriteNop32(uint32_t address, uint32_t value);
+    void WriteEwRam8(uint32_t address, uint8_t value);
+    void WriteEwRam16(uint32_t address, uint16_t value);
+    void WriteEwRam32(uint32_t address, uint32_t value);
+    void WriteIwRam8(uint32_t address, uint8_t value);
+    void WriteIwRam16(uint32_t address, uint16_t value);
+    void WriteIwRam32(uint32_t address, uint32_t value);
+    void WriteIO8(uint32_t address, uint8_t value);
+    void WriteIO16(uint32_t address, uint16_t value);
+    void WriteIO32(uint32_t address, uint32_t value);
+    void WritePalRam8(uint32_t address, uint8_t value);
+    void WritePalRam16(uint32_t address, uint16_t value);
+    void WritePalRam32(uint32_t address, uint32_t value);
+    void WriteVRam8(uint32_t address, uint8_t value);
+    void WriteVRam16(uint32_t address, uint16_t value);
+    void WriteVRam32(uint32_t address, uint32_t value);
+    void WriteOamRam8(uint32_t address, uint8_t value);
+    void WriteOamRam16(uint32_t address, uint16_t value);
+    void WriteOamRam32(uint32_t address, uint32_t value);
+    void WriteSRam8(uint32_t address, uint8_t value);
+    void WriteSRam16(uint32_t address, uint16_t value);
+    void WriteSRam32(uint32_t address, uint32_t value);
+    void WriteEeprom8(uint32_t address, uint8_t value);
+    void WriteEeprom16(uint32_t address, uint16_t value);
+    void WriteEeprom32(uint32_t address, uint32_t value);
 
     uint8_t ReadEeprom8(uint32_t address);
     uint16_t ReadEeprom16(uint32_t address);
     uint32_t ReadEeprom32(uint32_t address);
 
-    uint8_t ReadEwRam8(uint32_t address);
-    uint16_t ReadEwRam16(uint32_t address);
-    uint32_t ReadEwRam32(uint32_t address);
-
-    uint8_t ReadIO8(uint32_t address);
-    uint16_t ReadIO16(uint32_t address);
-    uint32_t ReadIO32(uint32_t address);
-
-    uint8_t ReadIwRam8(uint32_t address);
-    uint16_t ReadIwRam16(uint32_t address);
-    uint32_t ReadIwRam32(uint32_t address);
-
-    uint8_t ReadNop8(uint32_t address);
-    uint16_t ReadNop16(uint32_t address);
-    uint32_t ReadNop32(uint32_t address);
-
-    uint8_t ReadOamRam8(uint32_t address);
-    uint16_t ReadOamRam16(uint32_t address);
-    uint32_t ReadOamRam32(uint32_t address);
-
-    uint8_t ReadPalRam8(uint32_t address);
-    uint16_t ReadPalRam16(uint32_t address);
-    uint32_t ReadPalRam32(uint32_t address);
-
-    uint8_t  ReadROM8(uint32_t address, uint8_t bank);
-    uint16_t ReadROM16(uint32_t address, uint8_t bank);
-    uint32_t ReadROM32(uint32_t address, uint8_t bank);
-
-    uint8_t ReadSRam8(uint32_t address);
-    uint16_t ReadSRam16(uint32_t address);
-    uint32_t ReadSRam32(uint32_t address);
-
-    uint8_t ReadU8(uint32_t address);
-    uint16_t ReadU16(uint32_t address);
-    uint32_t ReadU32(uint32_t address);
-
-    uint8_t ReadU8Funcs(uint16_t bank, uint32_t address);
-    uint16_t ReadU16Funcs(uint16_t bank, uint32_t address);
-    uint32_t ReadU32Funcs(uint16_t bank, uint32_t address);
-
-    uint32_t ReadU32Aligned(uint32_t address);
-
-    uint16_t ReadU16Debug(uint32_t address);
-    uint32_t ReadU32Debug(uint32_t address);
-
-    uint8_t ReadVRam8(uint32_t address);
-    uint16_t ReadVRam16(uint32_t address);
-    uint32_t ReadVRam32(uint32_t address);
-
-    uint8_t ReadU8(uint32_t address, uint32_t RAMRange);
-    uint16_t ReadU16(uint32_t address, uint32_t RAMRange);
-    uint32_t ReadU32(uint32_t address, uint32_t RAMRange);
-
-    void WriteNop8(uint32_t address, uint8_t value);
-    void WriteNop16(uint32_t address, uint16_t value);
-    void WriteNop32(uint32_t address, uint32_t value);
-
-    void WriteEwRam8(uint32_t address, uint8_t value);
-    void WriteEwRam16(uint32_t address, uint16_t value);
-    void WriteEwRam32(uint32_t address, uint32_t value);
-
-    void WriteIwRam8(uint32_t address, uint8_t value);
-    void WriteIwRam16(uint32_t address, uint16_t value);
-    void WriteIwRam32(uint32_t address, uint32_t value);
-
-    void WriteIO8(uint32_t address, uint8_t value);
-    void WriteIO16(uint32_t address, uint16_t value);
-    void WriteIO32(uint32_t address, uint32_t value);
-
-    void WritePalRam8(uint32_t address, uint8_t value);
-    void WritePalRam16(uint32_t address, uint16_t value);
-    void WritePalRam32(uint32_t address, uint32_t value);
-
-    void WriteVRam8(uint32_t address, uint8_t value);
-    void WriteVRam16(uint32_t address, uint16_t value);
-    void WriteVRam32(uint32_t address, uint32_t value);
-
-    void WriteOamRam8(uint32_t address, uint8_t value);
-    void WriteOamRam16(uint32_t address, uint16_t value);
-    void WriteOamRam32(uint32_t address, uint32_t value);
-
-    void WriteSRam8(uint32_t address, uint8_t value);
-    void WriteSRam16(uint32_t address, uint16_t value);
-    void WriteSRam32(uint32_t address, uint32_t value);
-
-    void WriteEeprom8(uint32_t address, uint8_t value);
-    void WriteEeprom16(uint32_t address, uint16_t value);
-    void WriteEeprom32(uint32_t address, uint32_t value);
-
     void ShaderWritePalRam8(uint32_t address, uint8_t value);
     void ShaderWritePalRam16(uint32_t address, uint16_t value);
     void ShaderWritePalRam32(uint32_t address, uint32_t value);
-
     void ShaderWriteVRam8(uint32_t address, uint8_t value);
     void ShaderWriteVRam16(uint32_t address, uint16_t value);
     void ShaderWriteVRam32(uint32_t address, uint32_t value);
 
-    void WriteU8Funcs(uint16_t bank, uint32_t address, uint8_t value);
-    void WriteU16Funcs(uint16_t bank, uint32_t address, uint16_t value);
-    void WriteU32Funcs(uint16_t bank, uint32_t address, uint32_t value);
+    uint8_t ReadU8(uint32_t address);
+    uint16_t ReadU16(uint32_t address);
+    uint32_t ReadU32(uint32_t address);
+    uint32_t ReadU32Aligned(uint32_t address);
+    uint16_t ReadU16Debug(uint32_t address);
+    uint32_t ReadU32Debug(uint32_t address);
 
     void WriteU8(uint32_t address, uint8_t value);
     void WriteU16(uint32_t address, uint16_t value);
     void WriteU32(uint32_t address, uint32_t value);
-    
     void WriteU8Debug(uint32_t address, uint8_t value);
     void WriteU16Debug(uint32_t address, uint16_t value);
     void WriteU32Debug(uint32_t address, uint32_t value);
 
-    void WriteU8(uint32_t address, uint32_t RAMRange, uint8_t value);
-    void WriteU16(uint32_t address, uint32_t RAMRange, uint16_t value);
-    void WriteU32(uint32_t address, uint32_t RAMRange, uint32_t value);
+    void LoadCartridge();
+    void ResetRomBanks();
+    
+    uint8_t ReadU8Funcs(uint16_t bank, uint32_t address);
+    uint16_t ReadU16Funcs(uint16_t bank, uint32_t address);
+    uint32_t ReadU32Funcs(uint16_t bank, uint32_t address);
+
+    void WriteU8Funcs(uint16_t bank, uint32_t address, uint8_t value);
+    void WriteU16Funcs(uint16_t bank, uint32_t address, uint16_t value);
+    void WriteU32Funcs(uint16_t bank, uint32_t address, uint32_t value);
 
     void SPIRAMWrite(uint32_t address, uint8_t value);
     uint8_t SPIRAMRead(uint32_t address);

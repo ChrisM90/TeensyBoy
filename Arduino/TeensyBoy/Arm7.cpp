@@ -565,6 +565,374 @@ void Processor::Execute(int cycles)
 
 //--------------------------------------------------------Memory-----------------------------------------------------------------------//
 
+void Processor::Reset()
+{
+  WriteU16(BG2PA, ioRegStart, 0x0100);
+  WriteU16(BG2PD, ioRegStart, 0x0100);
+  WriteU16(BG3PA, ioRegStart, 0x0100);
+  WriteU16(BG3PD, ioRegStart, 0x0100);
+}
+
+void Processor::HBlankDma()
+{
+  for(uint8_t i = 0; i < 4; i++)
+  {
+    if(((dmaRegs[i][3] >> 12) & 0x3) == 2)
+    {
+      DmaTransfer(i);
+    }
+  }
+}
+
+void Processor::VBlankDma()
+{
+  for(uint8_t i = 0; i < 4; i++)
+  {
+    if(((dmaRegs[i][3] >> 12) & 0x3) == 1)
+    {
+      DmaTransfer(i);
+    }
+  }
+}
+
+void Processor::FifoDma(uint8_t channel)
+{
+  if(((dmaRegs[channel][3] >> 12) & 0x3) == 0x3)
+  {
+    DmaTransfer(channel);
+  }
+}
+
+void Processor::DmaTransfer(uint8_t channel)
+{
+  if((dmaRegs[channel][3] & (1 << 15)) != 0)
+  {
+    bool wideTransfer = (dmaRegs[channel][3] & (1 << 10)) != 0;
+
+    uint32_t srcDirection = 0;
+    uint32_t destDirection = 0;
+    bool reload = false;
+
+    switch((dmaRegs[channel][3] >> 5) & 0x3)
+    {
+      case 0: destDirection = 1; break;
+      case 1: destDirection = 0xFFFFFFFF; break;
+      case 2: destDirection = 0; break;
+      case 3: destDirection = 1; reload = true;  break;
+    }
+
+    switch ((dmaRegs[channel][3] >> 7) & 0x3)
+    {
+      case 0: srcDirection = 1; break;
+      case 1: srcDirection = 0xFFFFFFFF; break;
+      case 2: srcDirection = 0; break;
+      case 3: if (channel == 3){ return; } //TODO
+    }
+
+    int32_t numElements = (int32_t)dmaRegs[channel][2];
+    if(numElements == 0) 
+    {
+      numElements = 0x4000;
+    }
+
+    if(((dmaRegs[channel][3] >> 12) & 0x3) == 0x3)
+    {
+      //Sound FIFO mode
+      wideTransfer = true;
+      destDirection = 0;
+      numElements = 4;
+      reload = false;
+    }
+
+    if(wideTransfer)
+    {
+      srcDirection *= 4;
+      destDirection *= 4;
+      while(numElements-- >0)
+      {
+        WriteU32(dmaRegs[channel][1], ReadU32(dmaRegs[channel][0])); 
+        dmaRegs[channel][1] += destDirection;
+        dmaRegs[channel][0] += srcDirection;
+      }
+    }
+    else
+    {
+      srcDirection *= 2;
+      destDirection *= 2;
+      while(numElements-- > 0)
+      {
+        WriteU16(dmaRegs[channel][1], ReadU16(dmaRegs[channel][0])); 
+        dmaRegs[channel][1] += destDirection;
+        dmaRegs[channel][0] += srcDirection;
+      }
+    }
+
+    //If not a repeating DMA, them disable the DMA
+    if((dmaRegs[channel][3] & (1 << 9)) == 0)
+    {
+      dmaRegs[channel][3] &= 0x7FFF;
+    }
+    else
+    {
+      // Reload dest and count
+      switch (channel)
+      {
+        case 0:
+          if (reload) 
+          {
+            dmaRegs[0][1] = ReadU32(DMA0DAD, ioRegStart) & 0x07FFFFFF;
+          }
+          dmaRegs[0][2] = ReadU16(DMA0CNT_L, ioRegStart);
+          break;
+        case 1:
+          if (reload)
+          {
+            dmaRegs[1][1] = ReadU32(DMA1DAD, ioRegStart) & 0x07FFFFFF;
+          }
+          dmaRegs[1][2] = ReadU16(DMA1CNT_L, ioRegStart);
+          break;
+        case 2:
+          if (reload)
+          {
+            dmaRegs[2][1] = ReadU32(DMA2DAD, ioRegStart) & 0x07FFFFFF;
+          }
+          dmaRegs[2][2] = ReadU16(DMA2CNT_L, ioRegStart);
+          break;
+        case 3:
+          if (reload)
+          {
+            dmaRegs[3][1] = ReadU32(DMA3DAD, ioRegStart) & 0x0FFFFFFF;
+          }
+          dmaRegs[3][2] = ReadU16(DMA3CNT_L, ioRegStart);
+          break;
+      }
+    }
+
+    if((dmaRegs[channel][3] & (1 << 14)) != 0)
+    {
+      RequestIrq(8 + channel);
+    }
+  }
+}
+
+void Processor::WriteDmaControl(uint8_t channel)
+{
+  switch (channel)
+  {
+    case 0:
+      if (((dmaRegs[0][3] ^ ReadU16(DMA0CNT_H, ioRegStart)) & (1 << 15)) == 0)
+      {
+        return;
+      }
+      dmaRegs[0][0] = ReadU32(DMA0SAD, ioRegStart) & 0x07FFFFFF;
+      dmaRegs[0][1] = ReadU32(DMA0DAD, ioRegStart) & 0x07FFFFFF;
+      dmaRegs[0][2] = ReadU16(DMA0CNT_L, ioRegStart);
+      dmaRegs[0][3] = ReadU16(DMA0CNT_H, ioRegStart);
+      break;
+    case 1:
+      if (((dmaRegs[1][3] ^ ReadU16(DMA1CNT_H, ioRegStart)) & (1 << 15)) == 0)
+      {
+        return;
+      }
+      dmaRegs[1][0] = ReadU32(DMA1SAD, ioRegStart) & 0x0FFFFFFF;
+      dmaRegs[1][1] = ReadU32(DMA1DAD, ioRegStart) & 0x07FFFFFF;
+      dmaRegs[1][2] = ReadU16(DMA1CNT_L, ioRegStart);
+      dmaRegs[1][3] = ReadU16(DMA1CNT_H, ioRegStart);
+      break;
+    case 2:
+      if (((dmaRegs[2][3] ^ ReadU16(DMA2CNT_H, ioRegStart)) & (1 << 15)) == 0)
+      {
+        return;
+      }
+      dmaRegs[2][0] = ReadU32(DMA2SAD, ioRegStart) & 0x0FFFFFFF;
+      dmaRegs[2][1] = ReadU32(DMA2DAD, ioRegStart) & 0x07FFFFFF;
+      dmaRegs[2][2] = ReadU16(DMA2CNT_L, ioRegStart);
+      dmaRegs[2][3] = ReadU16(DMA2CNT_H, ioRegStart);
+      break;
+    case 3:
+      if (((dmaRegs[3][3] ^ ReadU16(DMA3CNT_H, ioRegStart)) & (1 << 15)) == 0)
+      {
+        return;
+      }
+      dmaRegs[3][0] = ReadU32(DMA3SAD, ioRegStart) & 0x0FFFFFFF;
+      dmaRegs[3][1] = ReadU32(DMA3DAD, ioRegStart) & 0x0FFFFFFF;
+      dmaRegs[3][2] = ReadU16(DMA3CNT_L, ioRegStart);
+      dmaRegs[3][3] = ReadU16(DMA3CNT_H, ioRegStart);
+      break;
+   }
+
+   switch((dmaRegs[channel][3] >> 12) & 0x3)
+   {
+      case 0:
+        DmaTransfer(channel);
+        break;
+      case 1:
+      case 2:
+        //Hblank and Vblank DMA's
+        break;
+      case 3:
+        //TODO (DMA Sound)
+        return;
+   }
+}
+
+void Processor::WriteTimerControl(uint32_t timer, uint32_t newCnt)
+{
+  uint16_t control = ReadU16(TM0CNT + (uint32_t)(timer * 4), ioRegStart);
+  uint32_t count = ReadU16(TM0D + (uint32_t)(timer * 4), ioRegStart);
+
+  if((newCnt & (1 <<7)) != 0 && (control & (1 << 7)) == 0)
+  {
+    timerCnt[timer] = count << 10;
+  }
+}
+
+uint8_t Processor::ReadU8(uint32_t address, uint32_t RAMRange)
+{
+  uint8_t tmp;
+  
+  if(RAMRange == oamRamStart)
+  {
+    tmp = OAMRAM[address];
+  }
+  else if(RAMRange == ioRegStart)
+  {
+    tmp = IOREG[address];
+  }
+  else
+  {
+    tmp = SPIRAMRead(RAMRange + address);
+  }
+
+  return tmp;
+}
+
+uint16_t Processor::ReadU16(uint32_t address, uint32_t RAMRange)
+{
+  uint16_t tmp;
+  
+  if(RAMRange == oamRamStart)
+  {
+    tmp = (uint16_t)(OAMRAM[address] | (OAMRAM[address + 1] << 8));
+  }
+  else if(RAMRange == ioRegStart)
+  {
+    tmp = (uint16_t)(IOREG[address] | (IOREG[address + 1] << 8));
+  }
+  else
+  {
+    tmp = (uint16_t)(SPIRAMRead(RAMRange + address) | (SPIRAMRead(RAMRange + address + 1) << 8));
+  }
+  
+  return tmp;
+}
+
+uint32_t Processor::ReadU32(uint32_t address, uint32_t RAMRange)
+{
+  uint32_t tmp;
+  
+  if(RAMRange == oamRamStart)
+  {
+    tmp = (uint32_t)(OAMRAM[address] | (OAMRAM[address + 1] << 8) | (OAMRAM[address + 2] << 16) | (OAMRAM[address + 3] << 24));
+  }
+  else if(RAMRange == ioRegStart)
+  {
+    tmp = (uint32_t)(IOREG[address] | (IOREG[address + 1] << 8) | (IOREG[address + 2] << 16) | (IOREG[address + 3] << 24));
+  }
+  else
+  {
+    tmp =  (uint32_t)(SPIRAMRead(RAMRange + address) | (SPIRAMRead(RAMRange + address + 1) << 8) | (SPIRAMRead(RAMRange + address + 2) << 16) | (SPIRAMRead(RAMRange + address + 3) << 24));
+  }
+   
+  return tmp;
+}
+
+void Processor::WriteU8(uint32_t address, uint32_t RAMRange, uint8_t value)
+{
+  if(RAMRange == oamRamStart)
+  {
+    OAMRAM[address] = value;
+  }
+  else if(RAMRange == ioRegStart)
+  {
+    IOREG[address] = value;
+  }
+  else
+  {
+    SPIRAMWrite((RAMRange + address), value);
+  }
+}
+
+void Processor::WriteU16(uint32_t address, uint32_t RAMRange, uint16_t value)
+{
+  if(RAMRange == oamRamStart)
+  {
+    OAMRAM[address] = (uint8_t)(value & 0xFF);
+    OAMRAM[address + 1] = (uint8_t)(value >> 8);
+  }
+  else if(RAMRange == ioRegStart)
+  {
+    IOREG[address] = (uint8_t)(value & 0xFF);
+    IOREG[address + 1] = (uint8_t)((value >> 8) & 0xFF);
+  }
+  else
+  {
+    SPIRAMWrite((RAMRange + address), (uint8_t)(value & 0xFF));
+    SPIRAMWrite((RAMRange + address) + 1, (uint8_t)(value >> 8));
+  }
+}
+
+void Processor::WriteU32(uint32_t address, uint32_t RAMRange, uint32_t value)
+{
+  if(RAMRange == oamRamStart)
+  {
+    OAMRAM[address] = (uint8_t)(value & 0xFF);
+    OAMRAM[address + 1] = (uint8_t)((value >> 8) & 0xFF);
+    OAMRAM[address + 2] = (uint8_t)((value >> 16) & 0xFF);
+    OAMRAM[address + 3] = (uint8_t)(value >> 24);
+  }
+  else if(RAMRange == ioRegStart)
+  {
+    IOREG[address] = (uint8_t)(value & 0xFF);
+    IOREG[address + 1] = (uint8_t)((value >> 8) & 0xFF);
+    IOREG[address + 2] = (uint8_t)((value >> 16) & 0xFF);
+    IOREG[address + 3] = (uint8_t)(value >> 24);
+  }
+  else
+  {
+    SPIRAMWrite((RAMRange + address), (uint8_t)(value & 0xFF));
+    SPIRAMWrite((RAMRange + address) + 1, (uint8_t)((value >> 8) & 0xFF));
+    SPIRAMWrite((RAMRange + address) + 2, (uint8_t)((value >> 16) & 0xFF));
+    SPIRAMWrite((RAMRange + address) + 3, (uint8_t)((value >> 24) & 0xFF));
+  }
+}
+
+uint32_t Processor::ReadUnreadable()
+{
+  if(inUnreadable)
+  {
+    return 0;
+  }
+
+  inUnreadable = true;
+
+  uint32_t res;
+
+  if(ArmState())
+  {
+    res = ReadU32(registers[15]);
+  }
+  else
+  {
+    uint16_t val = ReadU16(registers[15]);
+    res = (uint32_t)(val | (val << 16));
+  }
+
+  inUnreadable = false;
+
+  return res;
+}
+
 uint8_t Processor::ReadNop8(uint32_t address)
 {
   return (uint8_t)ReadUnreadable() & 0xFF;
@@ -578,66 +946,6 @@ uint16_t Processor::ReadNop16(uint32_t address)
 uint32_t Processor::ReadNop32(uint32_t address)
 {
   return ReadUnreadable();
-}
-
-uint8_t Processor::ReadROM8(uint32_t address, uint8_t bank)
-{
-  waitCycles += bankSTimes[(address >> 24) & 0xF];
-  
-  if(bank == 1)
-  {
-    address = (address & romBank1Mask);
-  }
-  else if(bank == 2)
-  {
-    address = (address & romBank2Mask) + romBank1Mask;
-  }
-  
-  ROM->seek(address);
-  uint8_t tmp =  ROM->read();
-  //Serial.println("ROM 8 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
-  //Serial.flush();
-  return tmp;
-}
-
-uint16_t Processor::ReadROM16(uint32_t address, uint8_t bank)
-{
-  waitCycles += bankSTimes[(address >> 24) & 0xF];
-
-  if(bank == 1)
-  {
-    address = (address & romBank1Mask);
-  }
-  else if(bank == 2)
-  {
-    address = (address & romBank2Mask) + romBank1Mask;
-  }
-  
-  ROM->seek(address);
-  uint16_t tmp = (uint16_t)(ROM->read() | (ROM->read() << 8));
-  //Serial.println("ROM 16 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
-  //Serial.flush();
-  return tmp;
-}
-
-uint32_t Processor::ReadROM32(uint32_t address, uint8_t bank)
-{
-  waitCycles += (bankSTimes[(address >> 24) & 0xF] * 2) + 1;
-
-  if(bank == 1)
-  {
-    address = (address & romBank1Mask);
-  }
-  else if(bank == 2)
-  {
-    address = (address & romBank2Mask) + romBank1Mask;
-  }
-  
-  ROM->seek(address);
-  uint32_t tmp = (uint32_t)(ROM->read() | (ROM->read() << 8) | (ROM->read() << 16) | (ROM->read() << 24));
-  //Serial.println("ROM 32 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
-  //Serial.flush();
-  return tmp;
 }
 
 uint8_t Processor::ReadBIOS8(uint32_t address)
@@ -919,6 +1227,66 @@ uint32_t Processor::ReadOamRam32(uint32_t address)
   return ReadU32(address, oamRamStart);
 }
 
+uint8_t Processor::ReadROM8(uint32_t address, uint8_t bank)
+{
+  waitCycles += bankSTimes[(address >> 24) & 0xF];
+  
+  if(bank == 1)
+  {
+    address = (address & romBank1Mask);
+  }
+  else if(bank == 2)
+  {
+    address = (address & romBank2Mask) + romBank1Mask;
+  }
+  
+  ROM->seek(address);
+  uint8_t tmp =  ROM->read();
+  Serial.println("ROM 8 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
+  Serial.flush();
+  return tmp;
+}
+
+uint16_t Processor::ReadROM16(uint32_t address, uint8_t bank)
+{
+  waitCycles += bankSTimes[(address >> 24) & 0xF];
+
+  if(bank == 1)
+  {
+    address = (address & romBank1Mask);
+  }
+  else if(bank == 2)
+  {
+    address = (address & romBank2Mask) + romBank1Mask;
+  }
+  
+  ROM->seek(address);
+  uint16_t tmp = (uint16_t)(ROM->read() | (ROM->read() << 8));
+  Serial.println("ROM 16 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
+  Serial.flush();
+  return tmp;
+}
+
+uint32_t Processor::ReadROM32(uint32_t address, uint8_t bank)
+{
+  waitCycles += (bankSTimes[(address >> 24) & 0xF] * 2) + 1;
+
+  if(bank == 1)
+  {
+    address = (address & romBank1Mask);
+  }
+  else if(bank == 2)
+  {
+    address = (address & romBank2Mask) + romBank1Mask;
+  }
+  
+  ROM->seek(address);
+  uint32_t tmp = (uint32_t)(ROM->read() | (ROM->read() << 8) | (ROM->read() << 16) | (ROM->read() << 24));
+  Serial.println("ROM 32 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
+  Serial.flush();
+  return tmp;
+}
+
 uint8_t Processor::ReadSRam8(uint32_t address)
 {
   address = (address & sRamMask);
@@ -1142,8 +1510,7 @@ void Processor::WriteIO8(uint32_t address, uint8_t value)
     case IF:
     case IF + 1:
       {
-        uint16_t tmp = ReadU16(address, ioRegStart);
-        IOREG[address] = (tmp & (uint8_t)~value);
+        IOREG[address] &= (uint8_t)~value;
       }
       break;
 
@@ -1545,7 +1912,6 @@ void Processor::WriteOamRam32(uint32_t address, uint32_t value)
 
 void Processor::WriteSRam8(uint32_t address, uint8_t value)
 {
-  waitCycles++;
   address = (address & sRamMask);
   SPIRAMWrite((sRamStart + address), value);
 }
@@ -1616,7 +1982,7 @@ void Processor::WriteEeprom8(uint32_t address, uint8_t value)
 
       if(curEepromByte == 64 + 9)
       {
-        eepromAddress = (uint32_t)(eepromStore[0] & 0x3F);
+        eepromAddress = (int32_t)(eepromStore[0] & 0x3F);
         offSet = 1;
       }
       else
@@ -1637,12 +2003,12 @@ void Processor::WriteEeprom8(uint32_t address, uint8_t value)
 
 void Processor::WriteEeprom16(uint32_t address, uint16_t value)
 {
-  WriteEeprom8(address, (uint16_t)(value & 0xFF));
+  WriteEeprom8(address, (uint8_t)(value & 0xFF));
 }
 
 void Processor::WriteEeprom32(uint32_t address, uint32_t value)
 {
-  WriteEeprom8(address, (uint16_t)(value & 0xFF));
+  WriteEeprom8(address, (uint8_t)(value & 0xFF));
 }
 
 uint8_t Processor::ReadEeprom8(uint32_t address)
@@ -1723,326 +2089,100 @@ void Processor::ShaderWriteVRam32(uint32_t address, uint32_t value)
   WriteU32(address, vRamStart, value);
 }
 
-uint8_t Processor::ReadU8(uint32_t address, uint32_t RAMRange)
+uint8_t Processor::ReadU8(uint32_t address)
 {
-  uint8_t tmp;
-  
-  if(RAMRange == oamRamStart)
-  {
-    tmp = OAMRAM[address];
-  }
-  else if(RAMRange == ioRegStart)
-  {
-    tmp = IOREG[address];
-  }
-  else
-  {
-    tmp = SPIRAMRead(RAMRange + address);
-  }
-
-  return tmp;
+  uint16_t bank = (address >> 24) & 0xf;
+  return ReadU8Funcs(bank, address);
 }
 
-uint16_t Processor::ReadU16(uint32_t address, uint32_t RAMRange)
+uint16_t Processor::ReadU16(uint32_t address)
 {
-  uint16_t tmp;
-  
-  if(RAMRange == oamRamStart)
-  {
-    tmp = (uint16_t)(OAMRAM[address] | (OAMRAM[address + 1] << 8));
-  }
-  else if(RAMRange == ioRegStart)
-  {
-    tmp = (uint16_t)(IOREG[address] | (IOREG[address + 1] << 8));
-  }
-  else
-  {
-    tmp = (uint16_t)(SPIRAMRead(RAMRange + address) | (SPIRAMRead(RAMRange + address + 1) << 8));
-  }
-  
-  return tmp;
+  address &= ~1;
+  uint16_t bank = (address >> 24) & 0xf;
+  return ReadU16Funcs(bank, address);
 }
 
-uint32_t Processor::ReadU32(uint32_t address, uint32_t RAMRange)
+ uint32_t Processor::ReadU32(uint32_t address)
 {
-  uint32_t tmp;
-  
-  if(RAMRange == oamRamStart)
-  {
-    tmp = (uint32_t)(OAMRAM[address] | (OAMRAM[address + 1] << 8) | (OAMRAM[address + 2] << 16) | (OAMRAM[address + 3] << 24));
-  }
-  else if(RAMRange == ioRegStart)
-  {
-    tmp = (uint32_t)(IOREG[address] | (IOREG[address + 1] << 8) | (IOREG[address + 2] << 16) | (IOREG[address + 3] << 24));
-  }
-  else
-  {
-    tmp =  (uint32_t)(SPIRAMRead(RAMRange + address) | (SPIRAMRead(RAMRange + address + 1) << 8) | (SPIRAMRead(RAMRange + address + 2) << 16) | (SPIRAMRead(RAMRange + address + 3) << 24));
-  }
-   
-  return tmp;
+  uint32_t shiftAmt = (int)((address & 3U) << 3);
+  address &= ~3;
+  uint16_t bank = (address >> 24) & 0xf;
+  uint32_t res = ReadU32Funcs(bank, address);
+  return (res >> shiftAmt) | (res << (32 - shiftAmt));
 }
 
-void Processor::Reset()
+uint32_t Processor::ReadU32Aligned(uint32_t address)
 {
-  WriteU16(BG2PA, ioRegStart, 0x0100);
-  WriteU16(BG2PD, ioRegStart, 0x0100);
-  WriteU16(BG3PA, ioRegStart, 0x0100);
-  WriteU16(BG3PD, ioRegStart, 0x0100);
+  uint16_t bank = (address >> 24) & 0xf;
+  return ReadU32Funcs(bank, address);
 }
 
-void Processor::HBlankDma()
+uint16_t Processor::ReadU16Debug(uint32_t address)
 {
-  for(uint8_t i = 0; i < 4; i++)
-  {
-    if(((dmaRegs[i][3] >> 12) & 0x3) == 2)
-    {
-      DmaTransfer(i);
-    }
-  }
-}
-
-void Processor::VBlankDma()
-{
-  for(uint8_t i = 0; i < 4; i++)
-  {
-    if(((dmaRegs[i][3] >> 12) & 0x3) == 1)
-    {
-      DmaTransfer(i);
-    }
-  }
-}
-
-void Processor::FifoDma(uint8_t channel)
-{
-  if(((dmaRegs[channel][3] >> 12) & 0x3) == 0x3)
-  {
-    DmaTransfer(channel);
-  }
-}
-
-void Processor::DmaTransfer(uint8_t channel)
-{
-  if((dmaRegs[channel][3] & (1 << 15)) != 0)
-  {
-    bool wideTransfer = (dmaRegs[channel][3] & (1 << 10)) != 0;
-
-    uint32_t srcDirection = 0;
-    uint32_t destDirection = 0;
-    bool reload = false;
-
-    switch((dmaRegs[channel][3] >> 5) & 0x3)
-    {
-      case 0: destDirection = 1; break;
-      case 1: destDirection = 0xFFFFFFFF; break;
-      case 2: destDirection = 0; break;
-      case 3: destDirection = 1; reload = true;  break;
-    }
-
-    switch ((dmaRegs[channel][3] >> 7) & 0x3)
-    {
-      case 0: srcDirection = 1; break;
-      case 1: srcDirection = 0xFFFFFFFF; break;
-      case 2: srcDirection = 0; break;
-      case 3: if (channel == 3){ return; } //TODO
-    }
-
-    int32_t numElements = (int32_t)dmaRegs[channel][2];
-    if(numElements == 0) 
-    {
-      numElements = 0x4000;
-    }
-
-    if(((dmaRegs[channel][3] >> 12) & 0x3) == 0x3)
-    {
-      //Sound FIFO mode
-      wideTransfer = true;
-      destDirection = 0;
-      numElements = 4;
-      reload = false;
-    }
-
-    if(wideTransfer)
-    {
-      srcDirection *= 4;
-      destDirection *= 4;
-      while(numElements-- >0)
-      {
-        WriteU32(dmaRegs[channel][1], ReadU32(dmaRegs[channel][0])); 
-        dmaRegs[channel][1] += destDirection;
-        dmaRegs[channel][0] += srcDirection;
-      }
-    }
-    else
-    {
-      srcDirection *= 2;
-      destDirection *= 2;
-      while(numElements-- > 0)
-      {
-        WriteU16(dmaRegs[channel][1], ReadU16(dmaRegs[channel][0])); 
-        dmaRegs[channel][1] += destDirection;
-        dmaRegs[channel][0] += srcDirection;
-      }
-    }
-
-    //If not a repeating DMA, them disable the DMA
-    if((dmaRegs[channel][3] & (1 << 9)) == 0)
-    {
-      dmaRegs[channel][3] &= 0x7FFF;
-    }
-    else
-    {
-      // Reload dest and count
-      switch (channel)
-      {
-        case 0:
-          if (reload) 
-          {
-            dmaRegs[0][1] = ReadU32(DMA0DAD, ioRegStart) & 0x07FFFFFF;
-          }
-          dmaRegs[0][2] = ReadU16(DMA0CNT_L, ioRegStart);
-          break;
-        case 1:
-          if (reload)
-          {
-            dmaRegs[1][1] = ReadU32(DMA1DAD, ioRegStart) & 0x07FFFFFF;
-          }
-          dmaRegs[1][2] = ReadU16(DMA1CNT_L, ioRegStart);
-          break;
-        case 2:
-          if (reload)
-          {
-            dmaRegs[2][1] = ReadU32(DMA2DAD, ioRegStart) & 0x07FFFFFF;
-          }
-          dmaRegs[2][2] = ReadU16(DMA2CNT_L, ioRegStart);
-          break;
-        case 3:
-          if (reload)
-          {
-            dmaRegs[3][1] = ReadU32(DMA3DAD, ioRegStart) & 0x0FFFFFFF;
-          }
-          dmaRegs[3][2] = ReadU16(DMA3CNT_L, ioRegStart);
-          break;
-      }
-    }
-
-    if((dmaRegs[channel][3] & (1 << 14)) != 0)
-    {
-      RequestIrq(8 + channel);
-    }
-  }
-}
-
-void Processor::WriteDmaControl(uint8_t channel)
-{
-  switch (channel)
-  {
-    case 0:
-      if (((dmaRegs[0][3] ^ ReadU16(DMA0CNT_H, ioRegStart)) & (1 << 15)) == 0)
-      {
-        return;
-      }
-      dmaRegs[0][0] = ReadU32(DMA0SAD, ioRegStart) & 0x07FFFFFF;
-      dmaRegs[0][1] = ReadU32(DMA0DAD, ioRegStart) & 0x07FFFFFF;
-      dmaRegs[0][2] = ReadU16(DMA0CNT_L, ioRegStart);
-      dmaRegs[0][3] = ReadU16(DMA0CNT_H, ioRegStart);
-      break;
-    case 1:
-      if (((dmaRegs[1][3] ^ ReadU16(DMA1CNT_H, ioRegStart)) & (1 << 15)) == 0)
-      {
-        return;
-      }
-      dmaRegs[1][0] = ReadU32(DMA1SAD, ioRegStart) & 0x0FFFFFFF;
-      dmaRegs[1][1] = ReadU32(DMA1DAD, ioRegStart) & 0x07FFFFFF;
-      dmaRegs[1][2] = ReadU16(DMA1CNT_L, ioRegStart);
-      dmaRegs[1][3] = ReadU16(DMA1CNT_H, ioRegStart);
-      break;
-    case 2:
-      if (((dmaRegs[2][3] ^ ReadU16(DMA2CNT_H, ioRegStart)) & (1 << 15)) == 0)
-      {
-        return;
-      }
-      dmaRegs[2][0] = ReadU32(DMA2SAD, ioRegStart) & 0x0FFFFFFF;
-      dmaRegs[2][1] = ReadU32(DMA2DAD, ioRegStart) & 0x07FFFFFF;
-      dmaRegs[2][2] = ReadU16(DMA2CNT_L, ioRegStart);
-      dmaRegs[2][3] = ReadU16(DMA2CNT_H, ioRegStart);
-      break;
-    case 3:
-      if (((dmaRegs[3][3] ^ ReadU16(DMA3CNT_H, ioRegStart)) & (1 << 15)) == 0)
-      {
-        return;
-      }
-      dmaRegs[3][0] = ReadU32(DMA3SAD, ioRegStart) & 0x0FFFFFFF;
-      dmaRegs[3][1] = ReadU32(DMA3DAD, ioRegStart) & 0x0FFFFFFF;
-      dmaRegs[3][2] = ReadU16(DMA3CNT_L, ioRegStart);
-      dmaRegs[3][3] = ReadU16(DMA3CNT_H, ioRegStart);
-      break;
-   }
-
-   switch((dmaRegs[channel][3] >> 12) & 0x3)
-   {
-      case 0:
-        DmaTransfer(channel);
-        break;
-      case 1:
-      case 2:
-        //Hblank and Vblank DMA's
-        break;
-      case 3:
-        //TODO (DMA Sound)
-        return;
-   }
-}
-
-void Processor::WriteTimerControl(uint32_t timer, uint32_t newCnt)
-{
-  uint16_t control = ReadU16(TM0CNT + (uint32_t)(timer * 4), ioRegStart);
-  uint32_t count = ReadU16(TM0D + (uint32_t)(timer * 4), ioRegStart);
-
-  if((newCnt & (1 <<7)) != 0 && (control & (1 << 7)) == 0)
-  {
-    timerCnt[timer] = count << 10;
-  }
-}
-
-uint32_t Processor::ReadUnreadable()
-{
-  if(inUnreadable)
-  {
-    return 0;
-  }
-
-  inUnreadable = true;
-
-  uint32_t res;
-
-  if(ArmState())
-  {
-    res = ReadU32(registers[15]);
-  }
-  else
-  {
-    uint16_t val = ReadU16(registers[15]);
-    res = (uint32_t)(val | (val << 16));
-  }
-
-  inUnreadable = false;
-
+  address &= ~1;
+  uint16_t bank = (address >> 24) & 0xf;
+  uint32_t oldWaitCycles = waitCycles;
+  uint16_t res = ReadU16Funcs(bank, address);
+  waitCycles = oldWaitCycles;
   return res;
 }
 
-void Processor::ResetRomBanks()
+uint32_t Processor::ReadU32Debug(uint32_t address)
 {
-  romBank1Mask = 0;
-  romBank2Mask = 0;
-    
-  for(uint8_t i = 0; i < (sizeof(bankSTimes)/sizeof(uint32_t)); i++)
-  {
-    bankSTimes[i] = 2;
-  }
+  int32_t shiftAmt = (int)((address & 3) << 3);
+  address &= ~3;
+  uint16_t bank = (address >> 24) & 0xf;
+  uint32_t oldWaitCycles = waitCycles;
+  uint32_t res = ReadU32Funcs(bank, address);
+  waitCycles = oldWaitCycles;
+  uint32_t tmp = (res >> shiftAmt) | (res << (32 - shiftAmt));
+  return tmp;
+}
 
-  RomBankCount = 0;
-  RomBankCount = 0;
+void Processor::WriteU8(uint32_t address, uint8_t value)
+{
+  uint16_t bank = (address >> 24) & 0xf;
+  WriteU8Funcs(bank, address, value);
+}
+
+void Processor::WriteU16(uint32_t address, uint16_t value)
+{
+  address &= ~1U;
+  uint16_t bank = (address >> 24) & 0xf;
+  WriteU16Funcs(bank, address, value);
+}
+
+void Processor::WriteU32(uint32_t address, uint32_t value)
+{
+  address &= ~3U;
+  uint16_t bank = (address >> 24) & 0xf;
+  WriteU32Funcs(bank, address, value);
+}
+
+void Processor::WriteU8Debug(uint32_t address, uint8_t value)
+{
+  uint16_t bank = (address >> 24) & 0xf;
+  uint32_t oldWaitCycles = waitCycles;
+  WriteU8Funcs(bank, address, value);
+  waitCycles = oldWaitCycles;
+}
+
+void Processor::WriteU16Debug(uint32_t address, uint16_t value)
+{
+  address &= ~1U;
+  uint16_t bank = (address >> 24) & 0xf;
+  uint32_t oldWaitCycles = waitCycles;
+  WriteU16Funcs(bank, address, value);
+  waitCycles = oldWaitCycles;
+}
+
+void Processor::WriteU32Debug(uint32_t address, uint32_t value)
+{
+  address &= ~3U;
+  uint16_t bank = (address >> 24) & 0xf;
+  uint32_t oldWaitCycles = waitCycles;
+  WriteU32Funcs(bank, address, value);
+  waitCycles = oldWaitCycles;
 }
 
 void Processor::LoadCartridge()
@@ -2103,6 +2243,20 @@ void Processor::LoadCartridge()
   //0E0h    4     JOYBUS Entry Pt. (32bit ARM branch opcode, eg. "B joy_start")
 }
 
+void Processor::ResetRomBanks()
+{
+  romBank1Mask = 0;
+  romBank2Mask = 0;
+    
+  for(uint8_t i = 0; i < (sizeof(bankSTimes)/sizeof(uint32_t)); i++)
+  {
+    bankSTimes[i] = 2;
+  }
+
+  RomBankCount = 0;
+  RomBankCount = 0;
+}
+
 uint8_t Processor::ReadU8Funcs(uint16_t bank, uint32_t address)
 {
   switch(bank)
@@ -2157,61 +2311,6 @@ uint8_t Processor::ReadU8Funcs(uint16_t bank, uint32_t address)
       break;
     default:
       return 0;
-  }
-}
-
-void Processor::WriteU8Funcs(uint16_t bank, uint32_t address, uint8_t value)
-{
-  switch(bank)
-  {
-    case 0:
-      WriteNop8(address, value);
-      break;
-    case 1:
-      WriteNop8(address, value);
-      break;
-    case 2:
-      WriteEwRam8(address, value);
-      break;
-    case 3:
-      WriteIwRam8(address, value);
-      break;
-    case 4:
-      WriteIO8(address, value);
-      break;
-    case 5:
-      EnableVRUpdating ? ShaderWritePalRam8(address, value) : WritePalRam8(address, value);
-      break;
-    case 6:
-      EnableVRUpdating ? ShaderWriteVRam8(address, value) : WriteVRam8(address, value);
-      break;
-    case 7:
-      WriteOamRam8(address, value);
-      break;
-    case 8:
-      WriteNop8(address, value);
-      break;
-    case 9:
-      WriteNop8(address, value);
-      break;
-    case 10:
-      WriteNop8(address, value);
-      break;
-    case 11:
-      WriteNop8(address, value);
-      break;
-    case 12:
-      WriteNop8(address, value);
-      break;
-    case 13:
-      WriteNop8(address, value);
-      break;
-    case 14:
-      WriteSRam8(address, value);
-      break;
-    case 15:
-      WriteNop8(address, value);
-      break;
   }
 }
 
@@ -2273,65 +2372,8 @@ uint16_t Processor::ReadU16Funcs(uint16_t bank, uint32_t address)
   }
 }
 
-void Processor::WriteU16Funcs(uint16_t bank, uint32_t address, uint16_t value)
-{
-  switch(bank)
-  {
-    case 0:
-      WriteNop16(address, value);
-      break;
-    case 1:
-      WriteNop16(address, value);
-      break;
-    case 2:
-      WriteEwRam16(address, value);
-      break;
-    case 3:
-      WriteIwRam16(address, value);
-      break;
-    case 4:
-      WriteIO16(address, value);
-      break;
-    case 5:
-      EnableVRUpdating ? ShaderWritePalRam16(address, value) : WritePalRam16(address, value);
-      break;
-    case 6:
-      EnableVRUpdating ? ShaderWriteVRam16(address, value) : WriteVRam16(address, value);
-      break;
-    case 7:
-      WriteOamRam16(address, value);
-      break;
-    case 8:
-      WriteNop16(address, value);
-      break;
-    case 9:
-      WriteNop16(address, value);
-      break;
-    case 10:
-      WriteNop16(address, value);
-      break;
-    case 11:
-      WriteNop16(address, value);
-      break;
-    case 12:
-      WriteNop16(address, value);
-      break;
-    case 13:
-      WriteNop16(address, value);
-      break;
-    case 14:
-      WriteSRam16(address, value);
-      break;
-    case 15:
-      WriteNop16(address, value);
-      break;
-  }
-}
-
 uint32_t Processor::ReadU32Funcs(uint16_t bank, uint32_t address)
 {
-  
-  //Serial.println("ReadU32 Bank: " + String(bank, DEC) + " Address: " + String(address, HEX));
   switch(bank)
   {
     case 0:
@@ -2387,6 +2429,116 @@ uint32_t Processor::ReadU32Funcs(uint16_t bank, uint32_t address)
   }
 }
 
+void Processor::WriteU8Funcs(uint16_t bank, uint32_t address, uint8_t value)
+{
+  switch(bank)
+  {
+    case 0:
+      WriteNop8(address, value);
+      break;
+    case 1:
+      WriteNop8(address, value);
+      break;
+    case 2:
+      WriteEwRam8(address, value);
+      break;
+    case 3:
+      WriteIwRam8(address, value);
+      break;
+    case 4:
+      WriteIO8(address, value);
+      break;
+    case 5:
+      EnableVRUpdating ? ShaderWritePalRam8(address, value) : WritePalRam8(address, value);
+      break;
+    case 6:
+      EnableVRUpdating ? ShaderWriteVRam8(address, value) : WriteVRam8(address, value);
+      break;
+    case 7:
+      WriteOamRam8(address, value);
+      break;
+    case 8:
+      WriteNop8(address, value);
+      break;
+    case 9:
+      WriteNop8(address, value);
+      break;
+    case 10:
+      WriteNop8(address, value);
+      break;
+    case 11:
+      WriteNop8(address, value);
+      break;
+    case 12:
+      WriteNop8(address, value);
+      break;
+    case 13:
+      WriteNop8(address, value);
+      break;
+    case 14:
+      WriteSRam8(address, value);
+      break;
+    case 15:
+      WriteNop8(address, value);
+      break;
+  }
+}
+
+void Processor::WriteU16Funcs(uint16_t bank, uint32_t address, uint16_t value)
+{
+  switch(bank)
+  {
+    case 0:
+      WriteNop16(address, value);
+      break;
+    case 1:
+      WriteNop16(address, value);
+      break;
+    case 2:
+      WriteEwRam16(address, value);
+      break;
+    case 3:
+      WriteIwRam16(address, value);
+      break;
+    case 4:
+      WriteIO16(address, value);
+      break;
+    case 5:
+      EnableVRUpdating ? ShaderWritePalRam16(address, value) : WritePalRam16(address, value);
+      break;
+    case 6:
+      EnableVRUpdating ? ShaderWriteVRam16(address, value) : WriteVRam16(address, value);
+      break;
+    case 7:
+      WriteOamRam16(address, value);
+      break;
+    case 8:
+      WriteNop16(address, value);
+      break;
+    case 9:
+      WriteNop16(address, value);
+      break;
+    case 10:
+      WriteNop16(address, value);
+      break;
+    case 11:
+      WriteNop16(address, value);
+      break;
+    case 12:
+      WriteNop16(address, value);
+      break;
+    case 13:
+      WriteNop16(address, value);
+      break;
+    case 14:
+      WriteSRam16(address, value);
+      break;
+    case 15:
+      WriteNop16(address, value);
+      break;
+  }
+}
+
 void Processor::WriteU32Funcs(uint16_t bank, uint32_t address, uint32_t value)
 {
   switch(bank)
@@ -2439,162 +2591,6 @@ void Processor::WriteU32Funcs(uint16_t bank, uint32_t address, uint32_t value)
     case 15:
       WriteNop32(address, value);
       break;
-  }
-}
-
-uint8_t Processor::ReadU8(uint32_t address)
-{
-  uint16_t bank = (address >> 24) & 0xf;
-  return ReadU8Funcs(bank, address);
-}
-
-uint16_t Processor::ReadU16(uint32_t address)
-{
-  address &= ~1;
-  uint16_t bank = (address >> 24) & 0xf;
-  return ReadU16Funcs(bank, address);
-}
-
- uint32_t Processor::ReadU32(uint32_t address)
-{
-  uint32_t shiftAmt = (int)((address & 3U) << 3);
-  address &= ~3;
-  uint16_t bank = (address >> 24) & 0xf;
-  uint32_t res = ReadU32Funcs(bank, address);
-  return (res >> shiftAmt) | (res << (32 - shiftAmt));
-}
-
-uint32_t Processor::ReadU32Aligned(uint32_t address)
-{
-  uint16_t bank = (address >> 24) & 0xf;
-  return ReadU32Funcs(bank, address);
-}
-
-uint16_t Processor::ReadU16Debug(uint32_t address)
-{
-  address &= ~1;
-  uint16_t bank = (address >> 24) & 0xf;
-  uint32_t oldWaitCycles = waitCycles;
-  uint16_t res = ReadU16Funcs(bank, address);
-  waitCycles = oldWaitCycles;
-  return res;
-}
-
-uint32_t Processor::ReadU32Debug(uint32_t address)
-{
-  uint32_t shiftAmt = (int)((address & 3) << 3);
-  address &= ~3;
-  uint16_t bank = (address >> 24) & 0xf;
-  uint32_t oldWaitCycles = waitCycles;
-  uint32_t res = ReadU32Funcs(bank, address);
-  waitCycles = oldWaitCycles;
-  uint32_t tmp = (res >> shiftAmt) | (res << (32 - shiftAmt));
-  return tmp;
-}
-
-void Processor::WriteU8(uint32_t address, uint8_t value)
-{
-  uint16_t bank = (address >> 24) & 0xf;
-  WriteU8Funcs(bank, address, value);
-}
-
-void Processor::WriteU16(uint32_t address, uint16_t value)
-{
-  address &= ~1;
-  uint16_t bank = (address >> 24) & 0xf;
-  WriteU16Funcs(bank, address, value);
-}
-
-void Processor::WriteU32(uint32_t address, uint32_t value)
-{
-  address &= ~3;
-  uint16_t bank = (address >> 24) & 0xf;
-  WriteU32Funcs(bank, address, value);
-}
-
-void Processor::WriteU8Debug(uint32_t address, uint8_t value)
-{
-  uint16_t bank = (address >> 24) & 0xf;
-  uint32_t oldWaitCycles = waitCycles;
-  WriteU8Funcs(bank, address, value);
-  waitCycles = oldWaitCycles;
-}
-
-void Processor::WriteU16Debug(uint32_t address, uint16_t value)
-{
-  address &= ~1;
-  uint16_t bank = (address >> 24) & 0xf;
-  uint32_t oldWaitCycles = waitCycles;
-  WriteU16Funcs(bank, address, value);
-  waitCycles = oldWaitCycles;
-}
-
-void Processor::WriteU32Debug(uint32_t address, uint32_t value)
-{
-  address &= ~3;
-  uint16_t bank = (address >> 24) & 0xf;
-  uint32_t oldWaitCycles = waitCycles;
-  WriteU32Funcs(bank, address, value);
-  waitCycles = oldWaitCycles;
-}
-
-void Processor::WriteU8(uint32_t address, uint32_t RAMRange, uint8_t value)
-{
-  if(RAMRange == oamRamStart)
-  {
-    OAMRAM[address] = value;
-  }
-  else if(RAMRange == ioRegStart)
-  {
-    IOREG[address] = value;
-  }
-  else
-  {
-    SPIRAMWrite((RAMRange + address), value);
-  }
-}
-
-void Processor::WriteU16(uint32_t address, uint32_t RAMRange, uint16_t value)
-{
-  if(RAMRange == oamRamStart)
-  {
-    OAMRAM[address] = (uint8_t)(value & 0xFF);
-    OAMRAM[address + 1] = (uint8_t)(value >> 8);
-  }
-  else if(RAMRange == ioRegStart)
-  {
-    IOREG[address] = (uint8_t)(value & 0xFF);
-    IOREG[address + 1] = (uint8_t)((value >> 8) & 0xFF);
-  }
-  else
-  {
-    SPIRAMWrite((RAMRange + address), (uint8_t)(value & 0xFF));
-    SPIRAMWrite((RAMRange + address) + 1, (uint8_t)(value >> 8));
-  }
-}
-
-void Processor::WriteU32(uint32_t address, uint32_t RAMRange, uint32_t value)
-{
-  if(RAMRange == oamRamStart)
-  {
-    OAMRAM[address] = (uint8_t)(value & 0xFF);
-    OAMRAM[address + 1] = (uint8_t)((value >> 8) & 0xFF);
-    OAMRAM[address + 2] = (uint8_t)((value >> 16) & 0xFF);
-    OAMRAM[address + 3] = (uint8_t)(value >> 24);
-  }
-  else if(RAMRange == ioRegStart)
-  {
-    IOREG[address] = (uint8_t)(value & 0xFF);
-    IOREG[address + 1] = (uint8_t)((value >> 8) & 0xFF);
-    IOREG[address + 2] = (uint8_t)((value >> 16) & 0xFF);
-    IOREG[address + 3] = (uint8_t)(value >> 24);
-  }
-  else
-  {
-    SPIRAMWrite((RAMRange + address), (uint8_t)(value & 0xFF));
-    SPIRAMWrite((RAMRange + address) + 1, (uint8_t)((value >> 8) & 0xFF));
-    SPIRAMWrite((RAMRange + address) + 2, (uint8_t)((value >> 16) & 0xFF));
-    SPIRAMWrite((RAMRange + address) + 3, (uint8_t)((value >> 24) & 0xFF));
   }
 }
 
