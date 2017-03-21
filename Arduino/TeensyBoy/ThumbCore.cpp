@@ -61,8 +61,26 @@ void ThumbCore::Execute()
     instructionQueue = parentt->ReadU16(parentt->registers[15]);
     parentt->registers[15] += 2;
 
+    if (curInstruction == 11008 && instructionQueue == 53752 && parentt->Cycles == 30)
+    {
+      for(int i = 0; i < 16; i++)
+      {
+        parentt->Print("Reg: ", parentt->registers[i]);
+      }
+    }
+
     // Execute the instruction
     NormalOps(curInstruction >> 8);
+    
+    if (curInstruction == 11008 && instructionQueue == 53752 && parentt->Cycles == 30)
+    {
+      for(int i = 0; i < 16; i++)
+      {
+        parentt->Print("Reg: ", parentt->registers[i]);
+      }
+
+      //while(true){}
+    }
 
     parentt->Cycles -= parentt->GetWaitCycles();
 
@@ -75,9 +93,7 @@ void ThumbCore::Execute()
       break;
     }
   }
-  
   PackFlags();
-  
 }
 
 void ThumbCore::OverflowCarryAdd(uint32_t a, uint32_t b, uint32_t r)
@@ -329,8 +345,14 @@ void ThumbCore::OpArith()
         else
         {
           carry = (parentt->registers[rd] >> 31) & 1;
-          if (carry == 1) parentt->registers[rd] = 0xFFFFFFFF;
-          else parentt->registers[rd] = 0;
+          if (carry == 1)
+          {
+            parentt->registers[rd] = 0xFFFFFFFF;
+          }
+          else 
+          {
+            parentt->registers[rd] = 0;
+          }
         }
   
         negative = parentt->registers[rd] >> 31;
@@ -721,9 +743,13 @@ void ThumbCore::OpAddSp()
 void ThumbCore::OpSubSp()
 {
     if ((curInstruction & (1 << 7)) != 0)
-        parentt->registers[13] -= (uint32_t)((curInstruction & 0x7F) * 4);
+    {
+      parentt->registers[13] -= (uint32_t)((curInstruction & 0x7F) * 4);
+    }   
     else
-        parentt->registers[13] += (uint32_t)((curInstruction & 0x7F) * 4);
+    {
+      parentt->registers[13] += (uint32_t)((curInstruction & 0x7F) * 4);
+    }
 }
 
 void ThumbCore::OpPush()
@@ -848,7 +874,11 @@ void ThumbCore::OpBCond()
     if (cond == 1)
     {
         uint32_t offSet = (uint32_t)(curInstruction & 0xFF);
-        if ((offSet & (1 << 7)) != 0) offSet |= 0xFFFFFF00;
+        
+        if ((offSet & (1 << 7)) != 0)
+        {
+          offSet |= 0xFFFFFF00;
+        }
 
         parentt->registers[15] += offSet << 1;
 
@@ -865,7 +895,10 @@ void ThumbCore::OpSwi()
 void ThumbCore::OpB()
 {
     uint32_t offSet = (uint32_t)(curInstruction & 0x7FF);
-    if ((offSet & (1 << 10)) != 0) offSet |= 0xFFFFF800;
+    if ((offSet & (1 << 10)) != 0)
+    {
+      offSet |= 0xFFFFF800;
+    }
 
     parentt->registers[15] += offSet << 1;
 
@@ -875,7 +908,10 @@ void ThumbCore::OpB()
 void ThumbCore::OpBl1()
 {
     uint32_t offSet = (uint32_t)(curInstruction & 0x7FF);
-    if ((offSet & (1 << 10)) != 0) offSet |= 0xFFFFF800;
+    if ((offSet & (1 << 10)) != 0)
+    {
+      offSet |= 0xFFFFF800;
+    }
 
     parentt->registers[14] = parentt->registers[15] + (offSet << 12);
 }

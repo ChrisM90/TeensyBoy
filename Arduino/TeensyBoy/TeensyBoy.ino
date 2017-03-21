@@ -110,7 +110,7 @@ void setup()
         failed = true;
         break;
       }
-      
+      processor.SPIRAMWrite(i, 0);
       val++;
     }
     

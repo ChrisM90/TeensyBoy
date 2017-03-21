@@ -472,7 +472,7 @@ void Processor::UpdateTimer(uint16_t timer, uint32_t cycles, bool countUp)
         if ((control2 & (1 << 2)) != 0)
         {
             // Count-up
-            UpdateTimer(timer + 1, (uint64_t)((timercnt >> 16) << 10), true);
+            UpdateTimer(timer + 1, (int32_t)((timercnt >> 16) << 10), true);
         }
       }
 
@@ -594,7 +594,10 @@ uint8_t Processor::ReadROM8(uint32_t address, uint8_t bank)
   }
   
   ROM->seek(address);
-  return ROM->read();
+  uint8_t tmp =  ROM->read();
+  Serial.println("ROM 8 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
+  Serial.flush();
+  return tmp;
 }
 
 uint16_t Processor::ReadROM16(uint32_t address, uint8_t bank)
@@ -611,7 +614,10 @@ uint16_t Processor::ReadROM16(uint32_t address, uint8_t bank)
   }
   
   ROM->seek(address);
-  return (uint16_t)(ROM->read() | (ROM->read() << 8));
+  uint16_t tmp = (uint16_t)(ROM->read() | (ROM->read() << 8));
+  Serial.println("ROM 16 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
+  Serial.flush();
+  return tmp;
 }
 
 uint32_t Processor::ReadROM32(uint32_t address, uint8_t bank)
@@ -628,7 +634,10 @@ uint32_t Processor::ReadROM32(uint32_t address, uint8_t bank)
   }
   
   ROM->seek(address);
-  return (uint32_t)(ROM->read() | (ROM->read() << 8) | (ROM->read() << 16) | (ROM->read() << 24));
+  uint32_t tmp = (uint32_t)(ROM->read() | (ROM->read() << 8) | (ROM->read() << 16) | (ROM->read() << 24));
+  Serial.println("ROM 32 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
+  Serial.flush();
+  return tmp;
 }
 
 uint8_t Processor::ReadBIOS8(uint32_t address)
@@ -1552,7 +1561,7 @@ void Processor::WriteSRam32(uint32_t address, uint32_t value)
 }
 
 uint32_t curEepromByte;
-uint32_t eepromReadAddress = -1;
+int32_t eepromReadAddress = -1;
 uint8_t eepromMode = 0; //idle = 0, readdata = 1
 uint8_t eepromStore[0xFF];
 
@@ -1838,11 +1847,15 @@ void Processor::DmaTransfer(uint8_t channel)
       case 3: if (channel == 3){ return; } //TODO
     }
 
-    uint64_t numElements = (uint64_t)dmaRegs[channel][2];
-    if(numElements == 0) numElements = 0x4000;
+    int32_t numElements = (int32_t)dmaRegs[channel][2];
+    if(numElements == 0) 
+    {
+      numElements = 0x4000;
+    }
 
     if(((dmaRegs[channel][3] >> 12) & 0x3) == 0x3)
     {
+      //Sound FIFO mode
       wideTransfer = true;
       destDirection = 0;
       numElements = 4;
@@ -1855,7 +1868,7 @@ void Processor::DmaTransfer(uint8_t channel)
       destDirection *= 4;
       while(numElements-- >0)
       {
-        WriteU32(dmaRegs[channel][1] , ewRamStart, dmaRegs[channel][0]); 
+        WriteU32(dmaRegs[channel][1], ReadU32(dmaRegs[channel][0])); 
         dmaRegs[channel][1] += destDirection;
         dmaRegs[channel][0] += srcDirection;
       }
@@ -1864,9 +1877,9 @@ void Processor::DmaTransfer(uint8_t channel)
     {
       srcDirection *= 2;
       destDirection *= 2;
-      while(numElements-- >0)
+      while(numElements-- > 0)
       {
-        WriteU16(dmaRegs[channel][1] , ewRamStart, dmaRegs[channel][0]); 
+        WriteU16(dmaRegs[channel][1], ReadU16(dmaRegs[channel][0])); 
         dmaRegs[channel][1] += destDirection;
         dmaRegs[channel][0] += srcDirection;
       }
@@ -1883,19 +1896,31 @@ void Processor::DmaTransfer(uint8_t channel)
       switch (channel)
       {
         case 0:
-          if (reload) dmaRegs[0][1] = ReadU32(DMA0DAD, ioRegStart) & 0x07FFFFFF;
+          if (reload) 
+          {
+            dmaRegs[0][1] = ReadU32(DMA0DAD, ioRegStart) & 0x07FFFFFF;
+          }
           dmaRegs[0][2] = ReadU16(DMA0CNT_L, ioRegStart);
           break;
         case 1:
-          if (reload) dmaRegs[1][1] = ReadU32(DMA1DAD, ioRegStart) & 0x07FFFFFF;
+          if (reload)
+          {
+            dmaRegs[1][1] = ReadU32(DMA1DAD, ioRegStart) & 0x07FFFFFF;
+          }
           dmaRegs[1][2] = ReadU16(DMA1CNT_L, ioRegStart);
           break;
         case 2:
-          if (reload) dmaRegs[2][1] = ReadU32(DMA2DAD, ioRegStart) & 0x07FFFFFF;
+          if (reload)
+          {
+            dmaRegs[2][1] = ReadU32(DMA2DAD, ioRegStart) & 0x07FFFFFF;
+          }
           dmaRegs[2][2] = ReadU16(DMA2CNT_L, ioRegStart);
           break;
         case 3:
-          if (reload) dmaRegs[3][1] = ReadU32(DMA3DAD, ioRegStart) & 0x0FFFFFFF;
+          if (reload)
+          {
+            dmaRegs[3][1] = ReadU32(DMA3DAD, ioRegStart) & 0x0FFFFFFF;
+          }
           dmaRegs[3][2] = ReadU16(DMA3CNT_L, ioRegStart);
           break;
       }
@@ -1913,28 +1938,40 @@ void Processor::WriteDmaControl(uint8_t channel)
   switch (channel)
   {
     case 0:
-      if (((dmaRegs[0][3] ^ ReadU16(DMA0CNT_H, ioRegStart)) & (1 << 15)) == 0) return;
+      if (((dmaRegs[0][3] ^ ReadU16(DMA0CNT_H, ioRegStart)) & (1 << 15)) == 0)
+      {
+        return;
+      }
       dmaRegs[0][0] = ReadU32(DMA0SAD, ioRegStart) & 0x07FFFFFF;
       dmaRegs[0][1] = ReadU32(DMA0DAD, ioRegStart) & 0x07FFFFFF;
       dmaRegs[0][2] = ReadU16(DMA0CNT_L, ioRegStart);
       dmaRegs[0][3] = ReadU16(DMA0CNT_H, ioRegStart);
       break;
     case 1:
-      if (((dmaRegs[1][3] ^ ReadU16(DMA1CNT_H, ioRegStart)) & (1 << 15)) == 0) return;
+      if (((dmaRegs[1][3] ^ ReadU16(DMA1CNT_H, ioRegStart)) & (1 << 15)) == 0)
+      {
+        return;
+      }
       dmaRegs[1][0] = ReadU32(DMA1SAD, ioRegStart) & 0x0FFFFFFF;
       dmaRegs[1][1] = ReadU32(DMA1DAD, ioRegStart) & 0x07FFFFFF;
       dmaRegs[1][2] = ReadU16(DMA1CNT_L, ioRegStart);
       dmaRegs[1][3] = ReadU16(DMA1CNT_H, ioRegStart);
       break;
     case 2:
-      if (((dmaRegs[2][3] ^ ReadU16(DMA2CNT_H, ioRegStart)) & (1 << 15)) == 0) return;
+      if (((dmaRegs[2][3] ^ ReadU16(DMA2CNT_H, ioRegStart)) & (1 << 15)) == 0)
+      {
+        return;
+      }
       dmaRegs[2][0] = ReadU32(DMA2SAD, ioRegStart) & 0x0FFFFFFF;
       dmaRegs[2][1] = ReadU32(DMA2DAD, ioRegStart) & 0x07FFFFFF;
       dmaRegs[2][2] = ReadU16(DMA2CNT_L, ioRegStart);
       dmaRegs[2][3] = ReadU16(DMA2CNT_H, ioRegStart);
       break;
     case 3:
-      if (((dmaRegs[3][3] ^ ReadU16(DMA3CNT_H, ioRegStart)) & (1 << 15)) == 0) return;
+      if (((dmaRegs[3][3] ^ ReadU16(DMA3CNT_H, ioRegStart)) & (1 << 15)) == 0)
+      {
+        return;
+      }
       dmaRegs[3][0] = ReadU32(DMA3SAD, ioRegStart) & 0x0FFFFFFF;
       dmaRegs[3][1] = ReadU32(DMA3DAD, ioRegStart) & 0x0FFFFFFF;
       dmaRegs[3][2] = ReadU16(DMA3CNT_L, ioRegStart);
@@ -2118,6 +2155,8 @@ uint8_t Processor::ReadU8Funcs(uint16_t bank, uint32_t address)
     case 15:
       return ReadNop8(address);
       break;
+    default:
+      return 0;
   }
 }
 
@@ -2229,6 +2268,8 @@ uint16_t Processor::ReadU16Funcs(uint16_t bank, uint32_t address)
     case 15:
       return ReadNop16(address);
       break;
+    default:
+      return 0;
   }
 }
 
