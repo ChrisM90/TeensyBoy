@@ -61,26 +61,8 @@ void ThumbCore::Execute()
     instructionQueue = parentt->ReadU16(parentt->registers[15]);
     parentt->registers[15] += 2;
 
-    if (curInstruction == 11008 && instructionQueue == 53752 && parentt->Cycles == 30)
-    {
-      for(int i = 0; i < 16; i++)
-      {
-        parentt->Print("Reg: ", parentt->registers[i]);
-      }
-    }
-
     // Execute the instruction
     NormalOps(curInstruction >> 8);
-    
-    if (curInstruction == 11008 && instructionQueue == 53752 && parentt->Cycles == 30)
-    {
-      for(int i = 0; i < 16; i++)
-      {
-        parentt->Print("Reg: ", parentt->registers[i]);
-      }
-
-      //while(true){}
-    }
 
     parentt->Cycles -= parentt->GetWaitCycles();
 
