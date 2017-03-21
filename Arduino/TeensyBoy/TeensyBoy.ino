@@ -1142,1026 +1142,7 @@ void DrawSpriteWindows()
     }
   }
 }
-
-void RenderTextBgWindow(int32_t bg)
-{
-  uint8_t blendMaskType = (uint8_t)(1 << bg);
-
-  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart); //Read BG0CNT 0x0 from IOReg
-
-  int32_t Width = 0, Height = 0;
-  switch ((bgcnt >> 14) & 0x3)
-  {
-  case 0: Width = 256; Height = 256; break;
-  case 1: Width = 512; Height = 256; break;
-  case 2: Width = 256; Height = 512; break;
-  case 3: Width = 512; Height = 512; break;
-  }
-
-  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
-  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
-
-  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-
-  if ((bgcnt & (1 << 7)) != 0)
-  {
-    // 256 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-    case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-    case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if ((windowCover[i] & (1 << bg)) != 0)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
-        if (lookup != 0)
-        {
-          uint16_t pixelColor = GBAToColor(processor.ReadU16(lookup * 2, palRamStart));
-          DrawPixel(curLine, i, pixelColor);
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-  else
-  {
-    // 16 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if ((windowCover[i] & (1 << bg)) != 0)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
-        if ((x & 1) == 0)
-        {
-          lookup &= 0xf;
-        }
-        else
-        {
-          lookup >>= 4;
-        }
-        if (lookup != 0)
-        {
-          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
-          uint16_t pixelColor = GBAToColor(processor.ReadU16(palNum + lookup * 2, palRamStart));
-          DrawPixel(curLine, i, pixelColor);
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-}
-
-void RenderTextBgWindowBlend(int32_t bg)
-{
-  uint8_t blendMaskType = (uint8_t)(1 << bg);
-
-  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
-
-  int32_t Width = 0, Height = 0;
-  switch ((bgcnt >> 14) & 0x3)
-  {
-  case 0: Width = 256; Height = 256; break;
-  case 1: Width = 512; Height = 256; break;
-  case 2: Width = 256; Height = 512; break;
-  case 3: Width = 512; Height = 512; break;
-  }
-
-  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
-  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
-
-  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-
-  if ((bgcnt & (1 << 7)) != 0)
-  {
-    // 256 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-    case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-    case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if ((windowCover[i] & (1 << bg)) != 0)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
-        if (lookup != 0)
-        {
-          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
-          
-          if ((windowCover[i] & (1 << 5)) != 0)
-          {
-            if ((Blend[i] & blendTarget) != 0)
-            {
-              uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
-              uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
-              uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-              uint16_t sourceValue = tft.dgetPixel(curLine, i);
-              r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
-              g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
-              b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              if (r > 0xff) r = 0xff;
-              if (g > 0xff) g = 0xff;
-              if (b > 0xff) b = 0xff;
-              pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-            }
-            else
-            {
-              pixelColor = GBAToColor(pixelColor);
-            }
-          }
-          else
-          {
-            pixelColor = GBAToColor(pixelColor);
-          }
-          
-          DrawPixel(curLine, i, pixelColor);
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-  else
-  {
-    // 16 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if ((windowCover[i] & (1 << bg)) != 0)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
-        if ((x & 1) == 0)
-        {
-          lookup &= 0xf;
-        }
-        else
-        {
-          lookup >>= 4;
-        }
-        if (lookup != 0)
-        {
-          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
-          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
-          
-          if ((windowCover[i] & (1 << 5)) != 0)
-          {
-            if ((Blend[i] & blendTarget) != 0)
-            {
-              uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
-              uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
-              uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-              uint16_t sourceValue = tft.dgetPixel(curLine, i);
-              r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
-              g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
-              b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              if (r > 0xff) r = 0xff;
-              if (g > 0xff) g = 0xff;
-              if (b > 0xff) b = 0xff;
-              pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-            }
-            else
-            {
-              pixelColor = GBAToColor(pixelColor);
-            }
-          }
-          else
-          {
-            pixelColor = GBAToColor(pixelColor);
-          }
-          
-          DrawPixel(curLine, i, pixelColor);
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-}
-
-void RenderTextBgWindowBrightInc(int32_t bg)
-{
-  uint8_t blendMaskType = (uint8_t)(1 << bg);
-
-  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
-
-  int32_t Width = 0, Height = 0;
-  switch ((bgcnt >> 14) & 0x3)
-  {
-    case 0: Width = 256; Height = 256; break;
-    case 1: Width = 512; Height = 256; break;
-    case 2: Width = 256; Height = 512; break;
-    case 3: Width = 512; Height = 512; break;
-  }
-
-  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
-  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
-
-  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-
-  if ((bgcnt & (1 << 7)) != 0)
-  {
-    // 256 color tiles
-    uint32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    uint32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-    case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-    case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if ((windowCover[i] & (1 << bg)) != 0)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
-        
-        if (lookup != 0)
-        {
-          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
-          
-          if ((windowCover[i] & (1 << 5)) != 0)
-          {
-            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
-            r = r + (((0xFF - r) * blendY) >> 4);
-            g = g + (((0xFF - g) * blendY) >> 4);
-            b = b + (((0xFF - b) * blendY) >> 4);
-            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
-          }
-          else
-          {
-            pixelColor = GBAToColor(pixelColor);
-          }
-          
-          DrawPixel(curLine, i, pixelColor);
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-  else
-  {
-    // 16 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if ((windowCover[i] & (1 << bg)) != 0)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
-        if ((x & 1) == 0)
-        {
-          lookup &= 0xf;
-        }
-        else
-        {
-          lookup >>= 4;
-        }
-        if (lookup != 0)
-        {
-          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
-          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
-          
-          if ((windowCover[i] & (1 << 5)) != 0)
-          {
-            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
-            r = r + (((0xFF - r) * blendY) >> 4);
-            g = g + (((0xFF - g) * blendY) >> 4);
-            b = b + (((0xFF - b) * blendY) >> 4);
-            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
-          }
-          else
-          {
-            pixelColor = GBAToColor(pixelColor);
-          }
-          
-          DrawPixel(curLine, i, pixelColor);
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-}
-
-void RenderTextBgWindowBrightDec(int32_t bg)
-{
-  uint8_t blendMaskType = (uint8_t)(1 << bg);
-
-  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
-
-  int32_t Width = 0, Height = 0;
-  switch ((bgcnt >> 14) & 0x3)
-  {
-    case 0: Width = 256; Height = 256; break;
-    case 1: Width = 512; Height = 256; break;
-    case 2: Width = 256; Height = 512; break;
-    case 3: Width = 512; Height = 512; break;
-  }
-
-  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
-  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
-
-  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-
-  if ((bgcnt & (1 << 7)) != 0)
-  {
-    // 256 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if ((windowCover[i] & (1 << bg)) != 0)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
-        if (lookup != 0)
-        {
-          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
-          
-          if ((windowCover[i] & (1 << 5)) != 0)
-          {
-            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
-            r = r - ((r * blendY) >> 4);
-            g = g - ((g * blendY) >> 4);
-            b = b - ((b * blendY) >> 4);
-            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
-          }
-          else
-          {
-            pixelColor = GBAToColor(pixelColor);
-          }
-          
-          DrawPixel(curLine, i, pixelColor);
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-  else
-  {
-    // 16 color tiles
-    uint32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if ((windowCover[i] & (1 << bg)) != 0)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
-        if ((x & 1) == 0)
-        {
-          lookup &= 0xf;
-        }
-        else
-        {
-          lookup >>= 4;
-        }
-        if (lookup != 0)
-        {
-          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
-          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
-          
-          if ((windowCover[i] & (1 << 5)) != 0)
-          {
-            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
-            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
-            r = r - ((r * blendY) >> 4);
-            g = g - ((g * blendY) >> 4);
-            b = b - ((b * blendY) >> 4);
-            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
-          }
-          else
-          {
-            pixelColor = GBAToColor(pixelColor);
-          }
-          
-          DrawPixel(curLine, i, pixelColor);
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-}
-
-void RenderTextBgNormal(int32_t bg)
-{
-  uint8_t blendMaskType = (uint8_t)(1 << bg);
-
-  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
-
-  int32_t Width = 0, Height = 0;
-  switch ((bgcnt >> 14) & 0x3)
-  {
-  case 0: Width = 256; Height = 256; break;
-  case 1: Width = 512; Height = 256; break;
-  case 2: Width = 256; Height = 512; break;
-  case 3: Width = 512; Height = 512; break;
-  }
-
-  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
-  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
-
-  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-
-  if ((bgcnt & (1 << 7)) != 0)
-  {
-    // 256 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if (true)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
-        if (lookup != 0)
-        {
-          uint16_t pixelColor = GBAToColor(processor.ReadU16(lookup * 2, palRamStart));
-          DrawPixel(curLine, i, pixelColor);
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-  else
-  {
-    // 16 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if (true)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
-        if ((x & 1) == 0)
-        {
-          lookup &= 0xf;
-        }
-        else
-        {
-          lookup >>= 4;
-        }
-        if (lookup != 0)
-        {
-          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
-          uint16_t pixelColor = GBAToColor(processor.ReadU16(palNum + lookup * 2, palRamStart));
-          DrawPixel(curLine, i, pixelColor);
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-}
-
-void RenderTextBgBlend(int32_t bg)
-{
-  uint8_t blendMaskType = (uint8_t)(1 << bg);
-
-  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
-
-  int32_t Width = 0, Height = 0;
-  switch ((bgcnt >> 14) & 0x3)
-  {
-    case 0: Width = 256; Height = 256; break;
-    case 1: Width = 512; Height = 256; break;
-    case 2: Width = 256; Height = 512; break;
-    case 3: Width = 512; Height = 512; break;
-  }
-
-  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
-  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
-  
-  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-
-  if ((bgcnt & (1 << 7)) != 0)
-  {
-    // 256 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if (true)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
-        if (lookup != 0)
-        {
-          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
-          
-          if ((Blend[i] & blendTarget) != 0)
-          {
-              uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
-              uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
-              uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-              uint16_t sourceValue = tft.dgetPixel(curLine, i);
-              r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
-              g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
-              b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              if (r > 0xff) r = 0xff;
-              if (g > 0xff) g = 0xff;
-              if (b > 0xff) b = 0xff;
-              pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-          }
-          else
-          {
-            pixelColor = GBAToColor(pixelColor);
-          }
-          
-          DrawPixel(curLine, i, pixelColor); 
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-  else
-  {
-    // 16 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if (true)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
-        if ((x & 1) == 0)
-        {
-          lookup &= 0xf;
-        }
-        else
-        {
-          lookup >>= 4;
-        }
-        if (lookup != 0)
-        {
-          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
-          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
-          
-          if ((Blend[i] & blendTarget) != 0)
-          {
-              uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
-              uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
-              uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-              uint16_t sourceValue = tft.dgetPixel(curLine, i);
-              r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
-              g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
-              b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-              if (r > 0xff) r = 0xff;
-              if (g > 0xff) g = 0xff;
-              if (b > 0xff) b = 0xff;
-              pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-          }
-          else
-          {
-            pixelColor = GBAToColor(pixelColor);
-          }
-          
-          DrawPixel(curLine, i, pixelColor); 
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-}
-
-void RenderTextBgBrightInc(int32_t bg)
-{
-  uint8_t blendMaskType = (uint8_t)(1 << bg);
-
-  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
-
-  int32_t Width = 0, Height = 0;
-  switch ((bgcnt >> 14) & 0x3)
-  {
-  case 0: Width = 256; Height = 256; break;
-  case 1: Width = 512; Height = 256; break;
-  case 2: Width = 256; Height = 512; break;
-  case 3: Width = 512; Height = 512; break;
-  }
-
-  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
-  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
-
-  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-
-  if ((bgcnt & (1 << 7)) != 0)
-  {
-    // 256 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if (true)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
-        if (lookup != 0)
-        {
-          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
-          uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
-          uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-          uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
-          r = r + (((0xFF - r) * blendY) >> 4);
-          g = g + (((0xFF - g) * blendY) >> 4);
-          b = b + (((0xFF - b) * blendY) >> 4);
-          pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-          DrawPixel(curLine, i, pixelColor); 
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-  else
-  {
-    // 16 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-    case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-    case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if (true)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
-        if ((x & 1) == 0)
-        {
-          lookup &= 0xf;
-        }
-        else
-        {
-          lookup >>= 4;
-        }
-        if (lookup != 0)
-        {
-          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
-          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
-          uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
-          uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-          uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
-          r = r + (((0xFF - r) * blendY) >> 4);
-          g = g + (((0xFF - g) * blendY) >> 4);
-          b = b + (((0xFF - b) * blendY) >> 4);
-          pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-          DrawPixel(curLine, i, pixelColor); 
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-}
-
-void RenderTextBgBrightDec(int32_t bg)
-{
-  uint8_t blendMaskType = (uint8_t)(1 << bg);
-
-  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
-
-  int32_t Width = 0, Height = 0;
-  switch ((bgcnt >> 14) & 0x3)
-  {
-    case 0: Width = 256; Height = 256; break;
-    case 1: Width = 512; Height = 256; break;
-    case 2: Width = 256; Height = 512; break;
-    case 3: Width = 512; Height = 512; break;
-  }
-
-  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
-  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
-
-  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
-
-  if ((bgcnt & (1 << 7)) != 0)
-  {
-    // 256 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if (true)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
-        if (lookup != 0)
-        {
-          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
-          uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
-          uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-          uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
-          r = r - ((r * blendY) >> 4);
-          g = g - ((g * blendY) >> 4);
-          b = b - ((b * blendY) >> 4);
-          pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-          DrawPixel(curLine, i, pixelColor); 
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-  else
-  {
-    // 16 color tiles
-    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
-
-    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
-    switch ((bgcnt >> 14) & 0x3)
-    {
-      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
-      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
-    }
-
-    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
-
-    for (int32_t i = 0; i < 240; i++)
-    {
-      if (true)
-      {
-        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
-        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
-        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
-        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
-        int32_t x = (i + hofs) & 7;
-        int32_t y = tileY;
-        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
-        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
-        int32_t lookup = processor.ReadU16(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
-        if ((x & 1) == 0)
-        {
-          lookup &= 0xf;
-        }
-        else
-        {
-          lookup >>= 4;
-        }
-        if (lookup != 0)
-        {
-          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
-          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
-          uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
-          uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
-          uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
-          r = r - ((r * blendY) >> 4);
-          g = g - ((g * blendY) >> 4);
-          b = b - ((b * blendY) >> 4);
-          pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
-          DrawPixel(curLine, i, pixelColor); 
-          Blend[i] = blendMaskType;
-        }
-      }
-    }
-  }
-}
-
+//-----------Sprite Drawing--------------------------------
 void DrawSpritesNormal(uint8_t priority)
 {
   // OBJ must be enabled in this.dispCnt
@@ -2635,8 +1616,8 @@ void DrawSpritesNormal(uint8_t priority)
 
             if ((i & 0x1ff) < 240 && tx >= 0 && tx < Width && ty >= 0 && ty < Height && true)
             {
-              uint16_t curIdx = (baseSprite + ((ty / 8) * pitch) + ((tx / 8) * scale)) * 32 + ((ty & 7) * 8) + (tx & 7);
-              uint8_t lookup = processor.ReadU8(0x10000 + curIdx, vRamStart);
+              uint32_t curIdx = (baseSprite + ((ty / 8) * pitch) + ((tx / 8) * scale)) * 32 + ((ty & 7) * 8) + (tx & 7);
+              uint32_t lookup = processor.ReadU8(0x10000 + curIdx, vRamStart);
               if (lookup != 0)
               {
                 uint16_t pixelColor = GBAToColor(processor.ReadU16(0x200 + lookup * 2, palRamStart));
@@ -2687,7 +1668,6 @@ void DrawSpritesNormal(uint8_t priority)
 
 void DrawSpritesBlend(uint8_t priority)
 {
-  //Serial.println("DrawSpritesBlend");
   // OBJ must be enabled in this.dispCnt
   if ((dispCnt & (1 << 12)) == 0) return;
 
@@ -2695,7 +1675,7 @@ void DrawSpritesBlend(uint8_t priority)
 
   for (int32_t oamNum = 127; oamNum >= 0; oamNum--)
   {
-    uint16_t attr2 = processor.ReadU16Debug(OAM_BASE + (uint32_t)(oamNum * 8) + 4); //Incorrect all the time e.g. 119 should be 49271
+    uint16_t attr2 = processor.ReadU16Debug(OAM_BASE + (uint32_t)(oamNum * 8) + 4);
 
     if (((attr2 >> 10) & 3) != priority) continue;
 
@@ -3683,17 +2663,13 @@ void DrawSpritesBrightInc(int32_t priority)
               int32_t lookup = processor.ReadU8(0x10000 + curIdx, vRamStart);
               if (lookup != 0)
               {
-                uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart); 
-                uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
-                uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
-                uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-                uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-                r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
-                g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
-                b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                if (r > 0xff) r = 0xff;
-                if (g > 0xff) g = 0xff;
-                if (b > 0xff) b = 0xff;
+			    uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
+                uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
+                r = r + (((0x1F - r) * blendY) >> 4);
+                g = g + (((0x1F - g) * blendY) >> 4);
+                b = b + (((0x1F - b) * blendY) >> 4);
                 pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
@@ -3724,17 +2700,13 @@ void DrawSpritesBrightInc(int32_t priority)
               }
               if (lookup != 0)
               {
-                uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
-                uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
-                uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
-                uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-                uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-                r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
-                g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
-                b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                if (r > 0xff) r = 0xff;
-                if (g > 0xff) g = 0xff;
-                if (b > 0xff) b = 0xff;
+			    uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
+                uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
+                r = r + (((0x1F - r) * blendY) >> 4);
+                g = g + (((0x1F - g) * blendY) >> 4);
+                b = b + (((0x1F - b) * blendY) >> 4);
                 pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
@@ -3788,17 +2760,13 @@ void DrawSpritesBrightInc(int32_t priority)
               int32_t lookup = processor.ReadU8(0x10000 + curIdx, vRamStart);
               if (lookup != 0)
               {
-                uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
-                uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
-                uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
-                uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-                uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-                r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
-                g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
-                b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                if (r > 0xff) r = 0xff;
-                if (g > 0xff) g = 0xff;
-                if (b > 0xff) b = 0xff;
+			    uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
+                uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
+                r = r + (((0x1F - r) * blendY) >> 4);
+                g = g + (((0x1F - g) * blendY) >> 4);
+                b = b + (((0x1F - b) * blendY) >> 4);
                 pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
@@ -3831,17 +2799,13 @@ void DrawSpritesBrightInc(int32_t priority)
               }
               if (lookup != 0)
               {
-                uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
-                uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
-                uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
-                uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
-                uint16_t sourceValue = tft.dgetPixel(curLine, (i & 0x1ff));
-                r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
-                g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
-                b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
-                if (r > 0xff) r = 0xff;
-                if (g > 0xff) g = 0xff;
-                if (b > 0xff) b = 0xff;
+			    uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+                uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
+                uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+                uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
+                r = r + (((0x1F - r) * blendY) >> 4);
+                g = g + (((0x1F - g) * blendY) >> 4);
+                b = b + (((0x1F - b) * blendY) >> 4);
                 pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
                 DrawPixel(curLine, (i & 0x1ff), pixelColor); 
                 Blend[(i & 0x1ff)] = blendMaskType;
@@ -4250,7 +3214,7 @@ void DrawSpritesBrightDec(int32_t priority)
               int32_t lookup = processor.ReadU8(0x10000 + curIdx, vRamStart);
               if (lookup != 0)
               {
-                uint16_t pixelColor = processor.ReadU8(0x200 + lookup * 2, palRamStart);
+                uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
                 uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
                 uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
                 uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
@@ -4287,7 +3251,7 @@ void DrawSpritesBrightDec(int32_t priority)
               }
               if (lookup != 0)
               {
-                uint16_t pixelColor = processor.ReadU8(palIdx + lookup * 2, palRamStart);
+                uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
                 uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
                 uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
                 uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
@@ -4347,7 +3311,7 @@ void DrawSpritesBrightDec(int32_t priority)
               int32_t lookup = processor.ReadU8(0x10000 + curIdx, vRamStart);
               if (lookup != 0)
               {
-                uint16_t pixelColor = processor.ReadU8(0x200 + lookup * 2, palRamStart);
+                uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
                 uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
                 uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
                 uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
@@ -4386,7 +3350,7 @@ void DrawSpritesBrightDec(int32_t priority)
               }
               if (lookup != 0)
               {
-                uint16_t pixelColor = processor.ReadU8(palIdx + lookup * 2, palRamStart);
+                uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
                 uint16_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
                 uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
                 uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
@@ -6846,7 +5810,8 @@ void DrawSpritesWindowBrightDec(int32_t priority)
     }
   }
 }
-
+//---------------------------------------------------------
+//-----------Rot/Scale Bg---------------------------------
 void RenderRotScaleBgNormal(int32_t bg)
 {
   //Serial.println("Render Rot Scale Bg Normal");
@@ -7357,6 +6322,1027 @@ void RenderRotScaleBgWindowBrightDec(int32_t bg)
     y += dy;
   }
 }
+//---------------------------------------------------------
+//-----------Text Bg---------------------------------------
+void RenderTextBgNormal(int32_t bg)
+{
+  uint8_t blendMaskType = (uint8_t)(1 << bg);
+
+  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
+
+  int32_t Width = 0, Height = 0;
+  switch ((bgcnt >> 14) & 0x3)
+  {
+  case 0: Width = 256; Height = 256; break;
+  case 1: Width = 512; Height = 256; break;
+  case 2: Width = 256; Height = 512; break;
+  case 3: Width = 512; Height = 512; break;
+  }
+
+  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
+  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
+
+  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+
+  if ((bgcnt & (1 << 7)) != 0)
+  {
+    // 256 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if (true)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
+        if (lookup != 0)
+        {
+          uint16_t pixelColor = GBAToColor(processor.ReadU16(lookup * 2, palRamStart));
+          DrawPixel(curLine, i, pixelColor);
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+  else
+  {
+    // 16 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if (true)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
+        if ((x & 1) == 0)
+        {
+          lookup &= 0xf;
+        }
+        else
+        {
+          lookup >>= 4;
+        }
+        if (lookup != 0)
+        {
+          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
+          uint16_t pixelColor = GBAToColor(processor.ReadU16(palNum + lookup * 2, palRamStart));
+          DrawPixel(curLine, i, pixelColor);
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+}
+
+void RenderTextBgBlend(int32_t bg)
+{
+  uint8_t blendMaskType = (uint8_t)(1 << bg);
+
+  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
+
+  int32_t Width = 0, Height = 0;
+  switch ((bgcnt >> 14) & 0x3)
+  {
+    case 0: Width = 256; Height = 256; break;
+    case 1: Width = 512; Height = 256; break;
+    case 2: Width = 256; Height = 512; break;
+    case 3: Width = 512; Height = 512; break;
+  }
+
+  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
+  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
+  
+  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+
+  if ((bgcnt & (1 << 7)) != 0)
+  {
+    // 256 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if (true)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
+        if (lookup != 0)
+        {
+          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          
+          if ((Blend[i] & blendTarget) != 0)
+          {
+              uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
+              uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
+              uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
+              uint16_t sourceValue = tft.dgetPixel(curLine, i);
+              r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
+              g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
+              b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
+              if (r > 0xff) r = 0xff;
+              if (g > 0xff) g = 0xff;
+              if (b > 0xff) b = 0xff;
+              pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+          }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
+          DrawPixel(curLine, i, pixelColor); 
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+  else
+  {
+    // 16 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if (true)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
+        if ((x & 1) == 0)
+        {
+          lookup &= 0xf;
+        }
+        else
+        {
+          lookup >>= 4;
+        }
+        if (lookup != 0)
+        {
+          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
+          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
+          
+          if ((Blend[i] & blendTarget) != 0)
+          {
+              uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
+              uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
+              uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
+              uint16_t sourceValue = tft.dgetPixel(curLine, i);
+              r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
+              g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
+              b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
+              if (r > 0xff) r = 0xff;
+              if (g > 0xff) g = 0xff;
+              if (b > 0xff) b = 0xff;
+              pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+          }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
+          DrawPixel(curLine, i, pixelColor); 
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+}
+
+void RenderTextBgBrightInc(int32_t bg)
+{
+  uint8_t blendMaskType = (uint8_t)(1 << bg);
+
+  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
+
+  int32_t Width = 0, Height = 0;
+  switch ((bgcnt >> 14) & 0x3)
+  {
+  case 0: Width = 256; Height = 256; break;
+  case 1: Width = 512; Height = 256; break;
+  case 2: Width = 256; Height = 512; break;
+  case 3: Width = 512; Height = 512; break;
+  }
+
+  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
+  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
+
+  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+
+  if ((bgcnt & (1 << 7)) != 0)
+  {
+    // 256 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if (true)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
+        if (lookup != 0)
+        {
+          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
+          uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+          uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
+          r = r + (((0xFF - r) * blendY) >> 4);
+          g = g + (((0xFF - g) * blendY) >> 4);
+          b = b + (((0xFF - b) * blendY) >> 4);
+          pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+          DrawPixel(curLine, i, pixelColor); 
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+  else
+  {
+    // 16 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+    case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+    case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if (true)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
+        if ((x & 1) == 0)
+        {
+          lookup &= 0xf;
+        }
+        else
+        {
+          lookup >>= 4;
+        }
+        if (lookup != 0)
+        {
+          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
+          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
+          uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
+          uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+          uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
+          r = r + (((0xFF - r) * blendY) >> 4);
+          g = g + (((0xFF - g) * blendY) >> 4);
+          b = b + (((0xFF - b) * blendY) >> 4);
+          pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+          DrawPixel(curLine, i, pixelColor); 
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+}
+
+void RenderTextBgBrightDec(int32_t bg)
+{
+  uint8_t blendMaskType = (uint8_t)(1 << bg);
+
+  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
+
+  int32_t Width = 0, Height = 0;
+  switch ((bgcnt >> 14) & 0x3)
+  {
+    case 0: Width = 256; Height = 256; break;
+    case 1: Width = 512; Height = 256; break;
+    case 2: Width = 256; Height = 512; break;
+    case 3: Width = 512; Height = 512; break;
+  }
+
+  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
+  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
+
+  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+
+  if ((bgcnt & (1 << 7)) != 0)
+  {
+    // 256 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if (true)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
+        if (lookup != 0)
+        {
+          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
+          uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+          uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
+          r = r - ((r * blendY) >> 4);
+          g = g - ((g * blendY) >> 4);
+          b = b - ((b * blendY) >> 4);
+          pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+          DrawPixel(curLine, i, pixelColor); 
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+  else
+  {
+    // 16 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if (true)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
+        if ((x & 1) == 0)
+        {
+          lookup &= 0xf;
+        }
+        else
+        {
+          lookup >>= 4;
+        }
+        if (lookup != 0)
+        {
+          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
+          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
+          uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
+          uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+          uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
+          r = r - ((r * blendY) >> 4);
+          g = g - ((g * blendY) >> 4);
+          b = b - ((b * blendY) >> 4);
+          pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+          DrawPixel(curLine, i, pixelColor); 
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+}
+
+void RenderTextBgWindow(int32_t bg)
+{
+  uint8_t blendMaskType = (uint8_t)(1 << bg);
+
+  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart); //Read BG0CNT 0x0 from IOReg
+
+  int32_t Width = 0, Height = 0;
+  switch ((bgcnt >> 14) & 0x3)
+  {
+  case 0: Width = 256; Height = 256; break;
+  case 1: Width = 512; Height = 256; break;
+  case 2: Width = 256; Height = 512; break;
+  case 3: Width = 512; Height = 512; break;
+  }
+
+  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
+  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
+
+  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+
+  if ((bgcnt & (1 << 7)) != 0)
+  {
+    // 256 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+    case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+    case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if ((windowCover[i] & (1 << bg)) != 0)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
+        if (lookup != 0)
+        {
+          uint16_t pixelColor = GBAToColor(processor.ReadU16(lookup * 2, palRamStart));
+          DrawPixel(curLine, i, pixelColor);
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+  else
+  {
+    // 16 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if ((windowCover[i] & (1 << bg)) != 0)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
+        if ((x & 1) == 0)
+        {
+          lookup &= 0xf;
+        }
+        else
+        {
+          lookup >>= 4;
+        }
+        if (lookup != 0)
+        {
+          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
+          uint16_t pixelColor = GBAToColor(processor.ReadU16(palNum + lookup * 2, palRamStart));
+          DrawPixel(curLine, i, pixelColor);
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+}
+
+void RenderTextBgWindowBlend(int32_t bg)
+{
+  uint8_t blendMaskType = (uint8_t)(1 << bg);
+
+  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
+
+  int32_t Width = 0, Height = 0;
+  switch ((bgcnt >> 14) & 0x3)
+  {
+  case 0: Width = 256; Height = 256; break;
+  case 1: Width = 512; Height = 256; break;
+  case 2: Width = 256; Height = 512; break;
+  case 3: Width = 512; Height = 512; break;
+  }
+
+  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
+  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
+
+  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+
+  if ((bgcnt & (1 << 7)) != 0)
+  {
+    // 256 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+    case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+    case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if ((windowCover[i] & (1 << bg)) != 0)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
+        if (lookup != 0)
+        {
+          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          
+          if ((windowCover[i] & (1 << 5)) != 0)
+          {
+            if ((Blend[i] & blendTarget) != 0)
+            {
+              uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
+              uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
+              uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
+              uint16_t sourceValue = tft.dgetPixel(curLine, i);
+              r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
+              g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
+              b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
+              if (r > 0xff) r = 0xff;
+              if (g > 0xff) g = 0xff;
+              if (b > 0xff) b = 0xff;
+              pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+            }
+            else
+            {
+              pixelColor = GBAToColor(pixelColor);
+            }
+          }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
+          DrawPixel(curLine, i, pixelColor);
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+  else
+  {
+    // 16 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if ((windowCover[i] & (1 << bg)) != 0)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
+        if ((x & 1) == 0)
+        {
+          lookup &= 0xf;
+        }
+        else
+        {
+          lookup >>= 4;
+        }
+        if (lookup != 0)
+        {
+          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
+          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
+          
+          if ((windowCover[i] & (1 << 5)) != 0)
+          {
+            if ((Blend[i] & blendTarget) != 0)
+            {
+              uint16_t r = (uint8_t)((((pixelColor) & 0x1F) * blendA) >> 4);       //First 5 Bits
+              uint16_t g = (uint8_t)((((pixelColor >> 5) & 0x1F) * blendA) >> 4);  //Middle 5 Bits
+              uint16_t b = (uint8_t)((((pixelColor >> 10) & 0x1F) * blendA) >> 4);   //Last 5 Bits
+              uint16_t sourceValue = tft.dgetPixel(curLine, i);
+              r += (uint8_t)((((sourceValue >> 11) & 0x1F) * blendB) >> 4); //R
+              g += (uint8_t)((((sourceValue >> 5) & 0x3F) * blendB) >> 4); //G
+              b += (uint8_t)((((sourceValue) & 0x1F) * blendB) >> 4); //B
+              if (r > 0xff) r = 0xff;
+              if (g > 0xff) g = 0xff;
+              if (b > 0xff) b = 0xff;
+              pixelColor = ((uint8_t)(b) << 0) | ((uint8_t)(g) << 5) | ((uint8_t)(r) << 11);
+            }
+            else
+            {
+              pixelColor = GBAToColor(pixelColor);
+            }
+          }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
+          DrawPixel(curLine, i, pixelColor);
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+}
+
+void RenderTextBgWindowBrightInc(int32_t bg)
+{
+  uint8_t blendMaskType = (uint8_t)(1 << bg);
+
+  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
+
+  int32_t Width = 0, Height = 0;
+  switch ((bgcnt >> 14) & 0x3)
+  {
+    case 0: Width = 256; Height = 256; break;
+    case 1: Width = 512; Height = 256; break;
+    case 2: Width = 256; Height = 512; break;
+    case 3: Width = 512; Height = 512; break;
+  }
+
+  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
+  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
+
+  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+
+  if ((bgcnt & (1 << 7)) != 0)
+  {
+    // 256 color tiles
+    uint32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    uint32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+    case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+    case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if ((windowCover[i] & (1 << bg)) != 0)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
+        
+        if (lookup != 0)
+        {
+          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          
+          if ((windowCover[i] & (1 << 5)) != 0)
+          {
+            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+            r = r + (((0xFF - r) * blendY) >> 4);
+            g = g + (((0xFF - g) * blendY) >> 4);
+            b = b + (((0xFF - b) * blendY) >> 4);
+            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
+          }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
+          DrawPixel(curLine, i, pixelColor);
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+  else
+  {
+    // 16 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if ((windowCover[i] & (1 << bg)) != 0)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
+        if ((x & 1) == 0)
+        {
+          lookup &= 0xf;
+        }
+        else
+        {
+          lookup >>= 4;
+        }
+        if (lookup != 0)
+        {
+          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
+          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
+          
+          if ((windowCover[i] & (1 << 5)) != 0)
+          {
+            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+            r = r + (((0xFF - r) * blendY) >> 4);
+            g = g + (((0xFF - g) * blendY) >> 4);
+            b = b + (((0xFF - b) * blendY) >> 4);
+            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
+          }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
+          DrawPixel(curLine, i, pixelColor);
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+}
+
+void RenderTextBgWindowBrightDec(int32_t bg)
+{
+  uint8_t blendMaskType = (uint8_t)(1 << bg);
+
+  uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
+
+  int32_t Width = 0, Height = 0;
+  switch ((bgcnt >> 14) & 0x3)
+  {
+    case 0: Width = 256; Height = 256; break;
+    case 1: Width = 512; Height = 256; break;
+    case 2: Width = 256; Height = 512; break;
+    case 3: Width = 512; Height = 512; break;
+  }
+
+  int32_t screenBase = ((bgcnt >> 8) & 0x1F) * 0x800;
+  int32_t charBase = ((bgcnt >> 2) & 0x3) * 0x4000;
+
+  int32_t hofs = processor.ReadU16(BG0HOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+  int32_t vofs = processor.ReadU16(BG0VOFS + (uint32_t)bg * 4, ioRegStart) & 0x1FF;
+
+  if ((bgcnt & (1 << 7)) != 0)
+  {
+    // 256 color tiles
+    int32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 8;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if ((windowCover[i] & (1 << bg)) != 0)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 56 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 64) + y + x, vRamStart);
+        if (lookup != 0)
+        {
+          uint16_t pixelColor = processor.ReadU16(lookup * 2, palRamStart);
+          
+          if ((windowCover[i] & (1 << 5)) != 0)
+          {
+            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+            r = r - ((r * blendY) >> 4);
+            g = g - ((g * blendY) >> 4);
+            b = b - ((b * blendY) >> 4);
+            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
+          }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
+          DrawPixel(curLine, i, pixelColor);
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+  else
+  {
+    // 16 color tiles
+    uint32_t bgy = ((curLine + vofs) & (Height - 1)) / 8;
+
+    int32_t tileIdx = screenBase + (((bgy & 31) * 32) * 2);
+    switch ((bgcnt >> 14) & 0x3)
+    {
+      case 2: if (bgy >= 32) tileIdx += 32 * 32 * 2; break;
+      case 3: if (bgy >= 32) tileIdx += 32 * 32 * 4; break;
+    }
+
+    int32_t tileY = ((curLine + vofs) & 0x7) * 4;
+
+    for (int32_t i = 0; i < 240; i++)
+    {
+      if ((windowCover[i] & (1 << bg)) != 0)
+      {
+        int32_t bgx = ((i + hofs) & (Width - 1)) / 8;
+        int32_t tmpTileIdx = tileIdx + ((bgx & 31) * 2);
+        if (bgx >= 32) tmpTileIdx += 32 * 32 * 2;
+        int32_t tileChar = processor.ReadU16(tmpTileIdx, vRamStart);
+        int32_t x = (i + hofs) & 7;
+        int32_t y = tileY;
+        if ((tileChar & (1 << 10)) != 0) x = 7 - x;
+        if ((tileChar & (1 << 11)) != 0) y = 28 - y;
+        int32_t lookup = processor.ReadU8(charBase + ((tileChar & 0x3FF) * 32) + y + (x / 2), vRamStart);
+        if ((x & 1) == 0)
+        {
+          lookup &= 0xf;
+        }
+        else
+        {
+          lookup >>= 4;
+        }
+        if (lookup != 0)
+        {
+          int32_t palNum = ((tileChar >> 12) & 0xf) * 16 * 2;
+          uint16_t pixelColor = processor.ReadU16(palNum + lookup * 2, palRamStart);
+          
+          if ((windowCover[i] & (1 << 5)) != 0)
+          {
+            uint8_t r = (uint8_t)((pixelColor) & 0x1F);      //First 5 Bits
+            uint8_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
+            uint8_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits 
+            r = r - ((r * blendY) >> 4);
+            g = g - ((g * blendY) >> 4);
+            b = b - ((b * blendY) >> 4);
+            pixelColor = ((b) << 0) | ((g) << 5) | ((r) << 11);
+          }
+          else
+          {
+            pixelColor = GBAToColor(pixelColor);
+          }
+          
+          DrawPixel(curLine, i, pixelColor);
+          Blend[i] = blendMaskType;
+        }
+      }
+    }
+  }
+}
+//---------------------------------------------------------
 
 uint16_t GBAToColor(uint16_t color)
 {
