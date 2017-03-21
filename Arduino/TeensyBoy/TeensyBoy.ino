@@ -266,7 +266,7 @@ void LeaveHBlank()
   if (((dispstat >> 8) & 0xff) == curLine)
   {
     dispstat = (uint16_t)(processor.ReadU16(DISPSTAT, ioRegStart) | (1 << 2)); //Read DISPSTAT 0x4 from IOReg
-    processor.WriteU16(0x4, ioRegStart, dispstat);//Write new DISPSTAT 0x4 to IOReg
+    processor.WriteU16(DISPSTAT, ioRegStart, dispstat);//Write new DISPSTAT 0x4 to IOReg
 
     if ((dispstat & (1 << 5)) != 0)
     {
@@ -678,7 +678,7 @@ void RenderMode0Line()
     {
       if ((dispCnt & (1 << (8 + i))) != 0)
       {
-        uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint16_t)i, ioRegStart); //Read BG0CNT 0x0 from IOReg
+        uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)i, ioRegStart); //Read BG0CNT 0x0 from IOReg
         if ((bgcnt & 0x3) == pri)
         {
           RenderTextBg(i);
@@ -710,7 +710,7 @@ void RenderMode1Line()
     {
       if ((dispCnt & (1 << (8 + i))) != 0)
       {
-        uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint16_t)i, ioRegStart); //Read BG0CNT 0x0 from IOReg
+        uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)i, ioRegStart); //Read BG0CNT 0x0 from IOReg
 
         if ((bgcnt & 0x3) == pri)
         {
@@ -733,7 +733,7 @@ void RenderMode2Line()
     {
       if ((dispCnt & (1 << (8 + i))) != 0)
       {
-        uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint16_t)i, ioRegStart); //Read BG0CNT 0x0 from IOReg
+        uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)i, ioRegStart); //Read BG0CNT 0x0 from IOReg
 
         if ((bgcnt & 0x3) == pri)
         {
@@ -901,7 +901,7 @@ void DrawSpriteWindows()
 
   for (int32_t oamNum = 127; oamNum >= 0; oamNum--)
   {
-    uint16_t attr0 = processor.ReadU16Debug(OAM_BASE + (uint16_t)(oamNum * 8) + 0);
+    uint16_t attr0 = processor.ReadU16Debug(OAM_BASE + (uint32_t)(oamNum * 8) + 0);
 
     // Not an object window, so continue
     if (((attr0 >> 10) & 3) != 2) continue;
