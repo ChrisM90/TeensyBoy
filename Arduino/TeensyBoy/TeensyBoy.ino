@@ -2681,7 +2681,6 @@ void DrawSpritesBrightInc(int32_t priority)
         else
         {
           // 16 colors
-          int32_t palIdx = 0x200 + (((attr2 >> 12) & 0xF) * 16 * 2);
           for (int32_t i = x; i < x + Width; i++)
           {
             if ((i & 0x1ff) < 240 && true)
@@ -2779,7 +2778,6 @@ void DrawSpritesBrightInc(int32_t priority)
         else
         {
           // 16 colors
-          int32_t palIdx = 0x200 + (((attr2 >> 12) & 0xF) * 16 * 2);
           for (int32_t i = x; i < x + rWidth; i++)
           {
             int32_t tx = rx >> 8;

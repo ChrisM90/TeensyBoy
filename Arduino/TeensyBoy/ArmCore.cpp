@@ -312,6 +312,8 @@ uint32_t ArmCore::BarrelShifter(uint32_t shifterOperand)
           shifterCarry = (rm >> (amount - 1)) & 1;
           return (rm >> amount) | (rm << (32 - amount));
         }
+      default:
+        return 0;
     }
   }
 }
