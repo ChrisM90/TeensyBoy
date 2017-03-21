@@ -1241,10 +1241,7 @@ uint8_t Processor::ReadROM8(uint32_t address, uint8_t bank)
   }
   
   ROM->seek(address);
-  uint8_t tmp =  ROM->read();
-  Serial.println("ROM 8 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
-  Serial.flush();
-  return tmp;
+  return ROM->read();
 }
 
 uint16_t Processor::ReadROM16(uint32_t address, uint8_t bank)
@@ -1261,10 +1258,7 @@ uint16_t Processor::ReadROM16(uint32_t address, uint8_t bank)
   }
   
   ROM->seek(address);
-  uint16_t tmp = (uint16_t)(ROM->read() | (ROM->read() << 8));
-  Serial.println("ROM 16 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
-  Serial.flush();
-  return tmp;
+  return (uint16_t)(ROM->read() | (ROM->read() << 8));
 }
 
 uint32_t Processor::ReadROM32(uint32_t address, uint8_t bank)
@@ -1281,10 +1275,7 @@ uint32_t Processor::ReadROM32(uint32_t address, uint8_t bank)
   }
   
   ROM->seek(address);
-  uint32_t tmp = (uint32_t)(ROM->read() | (ROM->read() << 8) | (ROM->read() << 16) | (ROM->read() << 24));
-  Serial.println("ROM 32 Address: " + String((bank == 2 ? address - romBank1Mask : address), DEC) + " Value: " + String(tmp, DEC) + " Bank: " + String(bank, DEC));
-  Serial.flush();
-  return tmp;
+  return (uint32_t)(ROM->read() | (ROM->read() << 8) | (ROM->read() << 16) | (ROM->read() << 24));
 }
 
 uint8_t Processor::ReadSRam8(uint32_t address)
