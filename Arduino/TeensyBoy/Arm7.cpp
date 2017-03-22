@@ -2591,32 +2591,21 @@ void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
 {
   SetAddress(address);
   
-  //Start Write Cycle
-  digitalWriteFast(WE, LOW);
-  digitalWriteFast(OE, HIGH);
+  GPIOB_PCOR = (1 << 18); //WE LOW
+  GPIOB_PSOR = (1 << 19); //OE HIGH
 
-  if(AccessMode != 1)
+  if(AccessMode != 1) //Write pinMode(OUTPUT);
   {
-    pinMode(2, OUTPUT); //IO 0
-    pinMode(3, OUTPUT); //IO 1
-    pinMode(4, OUTPUT); //IO 2
-    pinMode(5, OUTPUT); //IO 3
-    pinMode(6, OUTPUT); //IO 4
-    pinMode(7, OUTPUT); //IO 5
-    pinMode(8, OUTPUT); //IO 6
-    pinMode(9, OUTPUT); //IO 7
+    *portModeRegister(2) = 1; //IO 0
+    *portModeRegister(3) = 1; //IO 1
+    *portModeRegister(4) = 1; //IO 2
+    *portModeRegister(5) = 1; //IO 3
+    *portModeRegister(6) = 1; //IO 4
+    *portModeRegister(7) = 1; //IO 5
+    *portModeRegister(8) = 1; //IO 6
+    *portModeRegister(9) = 1; //IO 7
     AccessMode = 1;
   }
-  
-  //     Set         Clear       Bitmask
-  //DIO0 GPIOD_PSOR  GPIOD_PCOR  (1 << 0)
-  //DIO1 GPIOA_PSOR  GPIOA_PCOR  (1 << 12)
-  //DIO2 GPIOA_PSOR  GPIOA_PCOR  (1 << 13)
-  //DIO3 GPIOD_PSOR  GPIOD_PCOR  (1 << 7)
-  //DIO4 GPIOD_PSOR  GPIOD_PCOR  (1 << 4)
-  //DIO5 GPIOD_PSOR  GPIOD_PCOR  (1 << 2)
-  //DIO6 GPIOD_PSOR  GPIOD_PCOR  (1 << 3)
-  //DIO7 GPIOC_PSOR  GPIOC_PCOR  (1 << 3)
 
   if((value & 0x01)) //DIO0
   {
@@ -2691,40 +2680,40 @@ void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
   }
 
   //Back to Read
-  digitalWriteFast(WE, HIGH);
+  GPIOB_PSOR = (1 << 18); //WE HIGH
 }
 
 uint8_t Processor::SPIRAMRead(uint32_t address)
 {
   SetAddress(address);
 
-  //Start Read Cycle
-  digitalWriteFast(WE, HIGH);
-  digitalWriteFast(OE, LOW);
+  GPIOB_PSOR = (1 << 18); //WE HIGH
+  GPIOB_PCOR = (1 << 19); //OE LOW
+
   uint8_t value;
 
-  if(AccessMode != 0)
+  if(AccessMode != 0) //Read pinMode(INPUT);
   {
-    pinMode(2, INPUT); //IO 0
-    pinMode(3, INPUT); //IO 1
-    pinMode(4, INPUT); //IO 2
-    pinMode(5, INPUT); //IO 3
-    pinMode(6, INPUT); //IO 4
-    pinMode(7, INPUT); //IO 5
-    pinMode(8, INPUT); //IO 6
-    pinMode(9, INPUT); //IO 7
+    *portModeRegister(2) = 0; //IO 0
+    *portModeRegister(3) = 0; //IO 1
+    *portModeRegister(4) = 0; //IO 2
+    *portModeRegister(5) = 0; //IO 3
+    *portModeRegister(6) = 0; //IO 4
+    *portModeRegister(7) = 0; //IO 5
+    *portModeRegister(8) = 0; //IO 6
+    *portModeRegister(9) = 0; //IO 7
     AccessMode = 0;
   }
 
   //Read IO Pins
-  value = digitalReadFast(2);
-  value |= (digitalReadFast(3) << 1);
-  value |= (digitalReadFast(4) << 2);
-  value |= (digitalReadFast(5) << 3);
-  value |= (digitalReadFast(6) << 4);
-  value |= (digitalReadFast(7) << 5);
-  value |= (digitalReadFast(8) << 6);
-  value |= (digitalReadFast(9) << 7);
+  value = (GPIOD_PDIR & (1 << 0) ? 1 : 0);            //DIO0
+  value |= ((GPIOA_PDIR & (1 << 12) ? 1 : 0) << 1);   //DIO1
+  value |= ((GPIOA_PDIR & (1 << 13) ? 1 : 0) << 2);   //DIO2
+  value |= ((GPIOD_PDIR & (1 << 7) ? 1 : 0) << 3);    //DIO3
+  value |= ((GPIOD_PDIR & (1 << 4) ? 1 : 0) << 4);    //DIO4
+  value |= ((GPIOD_PDIR & (1 << 2) ? 1 : 0) << 5);    //DIO5
+  value |= ((GPIOD_PDIR & (1 << 3) ? 1 : 0) << 6);    //DIO6
+  value |= ((GPIOC_PDIR & (1 << 3) ? 1 : 0) << 7);    //DIO7
   
   return value;
 }

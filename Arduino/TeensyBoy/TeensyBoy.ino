@@ -90,6 +90,9 @@ void setup()
 
   processor.CreateCores(&processor, &FROM);
 
+  ARM_DEMCR |= ARM_DEMCR_TRCENA;
+  ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
+
   Serial.println("Checking and Resetting Memory...");
   Serial.flush();
 
@@ -98,32 +101,39 @@ void setup()
   unsigned long WriteTimeSeq = 0.0;
   unsigned long ReadTimeSeq = 0.0;
   unsigned long Timer = 0;
-  
-  Timer = micros();
-  processor.SPIRAMWrite(128, 128);
-  Timer = micros() - Timer;
-  WriteTime = Timer;
 
-  Timer = micros();
-  processor.SPIRAMWrite(129, 128);
-  Timer = micros() - Timer;
-  WriteTimeSeq = Timer;
+  for(int i = 0; i < 20; i++)
+  {
+    Timer = ARM_DWT_CYCCNT;
+    processor.SPIRAMWrite((i * 10), 128);
+    Timer = ARM_DWT_CYCCNT - Timer;
+    WriteTime += Timer;
   
-  Timer = micros();
-  processor.SPIRAMRead(128);
-  Timer = micros() - Timer;
-  ReadTime = Timer;
-
-  Timer = micros();
-  processor.SPIRAMRead(129);
-  Timer = micros() - Timer;
-  ReadTimeSeq = Timer;
-
-  Serial.println("Memory Read Time: " + String(ReadTime) + "us");
-  Serial.println("Memory Write Time: " + String(WriteTime) + "us");
+    Timer = ARM_DWT_CYCCNT;
+    processor.SPIRAMWrite((i * 10) + 1, 128);
+    Timer = ARM_DWT_CYCCNT - Timer;
+    WriteTimeSeq += Timer;
+    
+    Timer = ARM_DWT_CYCCNT;
+    processor.SPIRAMRead((i * 10));
+    Timer = ARM_DWT_CYCCNT - Timer;
+    ReadTime += Timer;
   
-  Serial.println("Memory Read Time Seq: " + String(ReadTimeSeq) + "us");
-  Serial.println("Memory Write Time Seq: " + String(WriteTimeSeq) + "us");
+    Timer = ARM_DWT_CYCCNT;
+    processor.SPIRAMRead((i * 10) + 1);
+    Timer = ARM_DWT_CYCCNT - Timer;
+    ReadTimeSeq += Timer;
+
+    processor.SPIRAMRead(0);
+  }
+
+  float timemulti = 1.0f / 240; //1 us divided by 240Mhz
+
+  Serial.println("Memory Read Time: " + String(((float)ReadTime / 20.0f) * timemulti) + "us");
+  Serial.println("Memory Write Time: " + String(((float)WriteTime / 20.0f) * timemulti) + "us");
+  
+  Serial.println("Memory Read Time Seq: " + String(((float)ReadTimeSeq / 20.0f) * timemulti) + "us");
+  Serial.println("Memory Write Time Seq: " + String(((float)WriteTimeSeq / 20.0f) * timemulti) + "us");
   
   while(true)
   {
