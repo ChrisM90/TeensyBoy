@@ -2585,23 +2585,28 @@ void Processor::WriteU32Funcs(uint16_t bank, uint32_t address, uint32_t value)
   }
 }
 
+uint8_t AccessMode = 2;
+
 void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
 {
   SetAddress(address);
   
   //Start Write Cycle
-  digitalWriteFast(CE, LOW);
   digitalWriteFast(WE, LOW);
   digitalWriteFast(OE, HIGH);
-  
-  pinMode(2, OUTPUT); //IO 0
-  pinMode(3, OUTPUT); //IO 1
-  pinMode(4, OUTPUT); //IO 2
-  pinMode(5, OUTPUT); //IO 3
-  pinMode(6, OUTPUT); //IO 4
-  pinMode(7, OUTPUT); //IO 5
-  pinMode(8, OUTPUT); //IO 6
-  pinMode(9, OUTPUT); //IO 7
+
+  if(AccessMode != 1)
+  {
+    pinMode(2, OUTPUT); //IO 0
+    pinMode(3, OUTPUT); //IO 1
+    pinMode(4, OUTPUT); //IO 2
+    pinMode(5, OUTPUT); //IO 3
+    pinMode(6, OUTPUT); //IO 4
+    pinMode(7, OUTPUT); //IO 5
+    pinMode(8, OUTPUT); //IO 6
+    pinMode(9, OUTPUT); //IO 7
+    AccessMode = 1;
+  }
   
   //Write IO Pins
   digitalWriteFast(2, (value & 0x01));
@@ -2614,21 +2619,7 @@ void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
   digitalWriteFast(9, ((value >> 7) & 0x01));
 
   //Back to Read
-  digitalWriteFast(CE, LOW);
   digitalWriteFast(WE, HIGH);
-
-  SetAddress(0);
-  
-  pinMode(2, INPUT); //IO 0
-  pinMode(3, INPUT); //IO 1
-  pinMode(4, INPUT); //IO 2
-  pinMode(5, INPUT); //IO 3
-  pinMode(6, INPUT); //IO 4
-  pinMode(7, INPUT); //IO 5
-  pinMode(8, INPUT); //IO 6
-  pinMode(9, INPUT); //IO 7
-
-  digitalWriteFast(OE, LOW);
 }
 
 uint8_t Processor::SPIRAMRead(uint32_t address)
@@ -2636,19 +2627,22 @@ uint8_t Processor::SPIRAMRead(uint32_t address)
   SetAddress(address);
 
   //Start Read Cycle
-  digitalWriteFast(CE, LOW);
   digitalWriteFast(WE, HIGH);
   digitalWriteFast(OE, LOW);
   uint8_t value;
-  
-  pinMode(2, INPUT); //IO 0
-  pinMode(3, INPUT); //IO 1
-  pinMode(4, INPUT); //IO 2
-  pinMode(5, INPUT); //IO 3
-  pinMode(6, INPUT); //IO 4
-  pinMode(7, INPUT); //IO 5
-  pinMode(8, INPUT); //IO 6
-  pinMode(9, INPUT); //IO 7
+
+  if(AccessMode != 0)
+  {
+    pinMode(2, INPUT); //IO 0
+    pinMode(3, INPUT); //IO 1
+    pinMode(4, INPUT); //IO 2
+    pinMode(5, INPUT); //IO 3
+    pinMode(6, INPUT); //IO 4
+    pinMode(7, INPUT); //IO 5
+    pinMode(8, INPUT); //IO 6
+    pinMode(9, INPUT); //IO 7
+    AccessMode = 0;
+  }
 
   //Read IO Pins
   value = digitalReadFast(2);
@@ -2660,37 +2654,263 @@ uint8_t Processor::SPIRAMRead(uint32_t address)
   value |= (digitalReadFast(8) << 6);
   value |= (digitalReadFast(9) << 7);
   
-  //Back to Read
-  digitalWriteFast(CE, LOW);
-  digitalWriteFast(WE, HIGH);
-  digitalWriteFast(OE, LOW);
-
-  SetAddress(0);
-
   return value;
 }
 
+uint32_t LastAddress = 0;
+
 void Processor::SetAddress(uint32_t value)
 {
-  digitalWriteFast(ADD0, (value & 0x01));
-  digitalWriteFast(ADD1, ((value >> 1) & 0x01));
-  digitalWriteFast(ADD2, ((value >> 2) & 0x01));
-  digitalWriteFast(ADD3, ((value >> 3) & 0x01));
-  digitalWriteFast(ADD4, ((value >> 4) & 0x01));
-  digitalWriteFast(ADD5, ((value >> 5) & 0x01));
-  digitalWriteFast(ADD6, ((value >> 6) & 0x01));
-  digitalWriteFast(ADD7, ((value >> 7) & 0x01));
-  digitalWriteFast(ADD8, ((value >> 8) & 0x01));
-  digitalWriteFast(ADD9, ((value >> 9) & 0x01));
-  digitalWriteFast(ADD10, ((value >> 10) & 0x01));
-  digitalWriteFast(ADD11, ((value >> 11) & 0x01));
-  digitalWriteFast(ADD12, ((value >> 12) & 0x01));
-  digitalWriteFast(ADD13, ((value >> 13) & 0x01));
-  digitalWriteFast(ADD14, ((value >> 14) & 0x01));
-  digitalWriteFast(ADD15, ((value >> 15) & 0x01));
-  digitalWriteFast(ADD16, ((value >> 16) & 0x01));
-  digitalWriteFast(ADD17, ((value >> 17) & 0x01));
-  digitalWriteFast(ADD18, ((value >> 18) & 0x01));
+  //           BITMASK       PORTSET       PORTCLR
+  // ADD0 0   //(1 << 16)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD1 1   //(1 << 17)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD2 24  //(1 << 26)    GPIOE_PSOR    GPIOE_PCOR
+  // ADD3 25  //(1 << 5)     GPIOA_PSOR    GPIOA_PCOR
+  // ADD4 31  //(1 << 10)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD5 32  //(1 << 11)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD6 40  //(1 << 28)    GPIOA_PSOR    GPIOA_PCOR
+  // ADD7 41  //(1 << 29)    GPIOA_PSOR    GPIOA_PCOR 
+  // ADD8 42  //(1 << 26)    GPIOA_PSOR    GPIOA_PCOR 
+  // ADD9 43  //(1 << 20)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD10 44 //(1 << 22)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD11 45 //(1 << 23)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD12 46 //(1 << 21)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD13 47 //(1 << 8)     GPIOD_PSOR    GPIOD_PCOR 
+  // ADD14 48 //(1 << 9)     GPIOD_PSOR    GPIOD_PCOR 
+  // ADD15 49 //(1 << 4)     GPIOB_PSOR    GPIOB_PCOR
+  // ADD16 50 //(1 << 5)     GPIOB_PSOR    GPIOB_PCOR 
+  // ADD17 51 //(1 << 14)    GPIOD_PSOR    GPIOD_PCOR
+  // ADD18 52 //(1 << 13)    GPIOD_PSOR    GPIOD_PCOR
+
+  if((value & 0x01) != (LastAddress & 0x01))
+  {
+    if((value & 0x01)) //ADD0
+    {
+      GPIOB_PSOR = (1 << 16);
+    }
+    else
+    {
+      GPIOB_PCOR = (1 << 16);
+    }
+  }
+
+  if(((value >> 1) & 0x01) != ((LastAddress >> 1) & 0x01))
+  {
+    if(((value >> 1) & 0x01)) //ADD1
+    {
+      GPIOB_PSOR = (1 << 17);
+    }
+    else
+    {
+      GPIOB_PCOR = (1 << 17);
+    }
+  }
+
+  if(((value >> 2) & 0x01) != ((LastAddress >> 2) & 0x01))
+  {
+    if(((value >> 2) & 0x01)) //ADD2
+    {
+      GPIOE_PSOR = (1 << 26);
+    }
+    else
+    {
+      GPIOE_PCOR = (1 << 26);
+    }
+  }
+
+  if(((value >> 3) & 0x01) != ((LastAddress >> 3) & 0x01))
+  {
+    if(((value >> 3) & 0x01)) //ADD3
+    {
+      GPIOA_PSOR = (1 << 5);
+    }
+    else
+    {
+      GPIOA_PCOR = (1 << 5);
+    }
+  }
+
+  if(((value >> 4) & 0x01) != ((LastAddress >> 4) & 0x01))
+  {
+    if(((value >> 4) & 0x01)) //ADD4
+    {
+      GPIOB_PSOR = (1 << 10);
+    }
+    else
+    {
+      GPIOB_PCOR = (1 << 10);
+    }
+  }
+
+  if(((value >> 5) & 0x01) != ((LastAddress >> 5) & 0x01))
+  {
+    if(((value >> 5) & 0x01)) //ADD5
+    {
+      GPIOB_PSOR = (1 << 11);
+    }
+    else
+    {
+      GPIOB_PCOR = (1 << 11);
+    }
+  }
+
+  if(((value >> 6) & 0x01) != ((LastAddress >> 6) & 0x01))
+  {
+    if(((value >> 6) & 0x01)) //ADD6
+    {
+      GPIOA_PSOR = (1 << 28);
+    }
+    else
+    {
+      GPIOA_PCOR = (1 << 28);
+    }
+  }
+
+  if(((value >> 7) & 0x01) != ((LastAddress >> 7) & 0x01))
+  {
+    if(((value >> 7) & 0x01)) //ADD7
+    {
+      GPIOA_PSOR = (1 << 29);
+    }
+    else
+    {
+      GPIOA_PCOR = (1 << 29);
+    }
+  }
+
+  if(((value >> 8) & 0x01) != ((LastAddress >> 8) & 0x01))
+  {
+    if(((value >> 8) & 0x01)) //ADD8
+    {
+      GPIOA_PSOR = (1 << 26);
+    }
+    else
+    {
+      GPIOA_PCOR = (1 << 26);
+    }
+  }
+
+  if(((value >> 9) & 0x01) != ((LastAddress >> 9) & 0x01))
+  {
+    if(((value >> 9) & 0x01)) //ADD9
+    {
+      GPIOB_PSOR = (1 << 20);
+    }
+    else
+    {
+      GPIOB_PCOR = (1 << 20);
+    }
+  }
+
+  if(((value >> 10) & 0x01) != ((LastAddress >> 10) & 0x01))
+  {
+    if(((value >> 10) & 0x01)) //ADD10
+    {
+      GPIOB_PSOR = (1 << 22);
+    }
+    else
+    {
+      GPIOB_PCOR = (1 << 22);
+    }
+  }
+
+  if(((value >> 11) & 0x01) != ((LastAddress >> 11) & 0x01))
+  {
+    if(((value >> 11) & 0x01)) //ADD11
+    {
+      GPIOB_PSOR = (1 << 23);
+    }
+    else
+    {
+      GPIOB_PCOR = (1 << 23);
+    }
+  }
+
+  if(((value >> 12) & 0x01) != ((LastAddress >> 12) & 0x01))
+  {
+    if(((value >> 12) & 0x01)) //ADD12
+    {
+      GPIOB_PSOR = (1 << 21);
+    }
+    else
+    {
+      GPIOB_PCOR = (1 << 21);
+    }
+  }
+
+  if(((value >> 13) & 0x01) != ((LastAddress >> 13) & 0x01))
+  {
+    if(((value >> 13) & 0x01)) //ADD13
+    {
+      GPIOD_PSOR = (1 << 8);
+    }
+    else
+    {
+      GPIOD_PCOR = (1 << 8);
+    }
+  }
+
+  if(((value >> 14) & 0x01) != ((LastAddress >> 14) & 0x01))
+  {
+    if(((value >> 14) & 0x01)) //ADD14
+    {
+      GPIOD_PSOR = (1 << 9);
+    }
+    else
+    {
+      GPIOD_PCOR = (1 << 9);
+    }
+  }
+
+  if(((value >> 15) & 0x01) != ((LastAddress >> 15) & 0x01))
+  {
+    if(((value >> 15) & 0x01)) //ADD15
+    {
+      GPIOB_PSOR = (1 << 4);
+    }
+    else
+    {
+      GPIOB_PCOR = (1 << 4);
+    }
+  }
+
+  if(((value >> 16) & 0x01) != ((LastAddress >> 16) & 0x01))
+  {
+    if(((value >> 16) & 0x01)) //ADD16
+    {
+      GPIOB_PSOR = (1 << 5);
+    }
+    else
+    {
+      GPIOB_PCOR = (1 << 5);
+    }
+  }
+
+  if(((value >> 17) & 0x01) != ((LastAddress >> 17) & 0x01))
+  {
+    if(((value >> 17) & 0x01)) //ADD17
+    {
+      GPIOD_PSOR = (1 << 14);
+    }
+    else
+    {
+      GPIOD_PCOR = (1 << 14);
+    }
+  }
+
+  if(((value >> 18) & 0x01) != ((LastAddress >> 18) & 0x01))
+  {
+    if(((value >> 18) & 0x01)) //ADD18
+    {
+      GPIOD_PSOR = (1 << 13);
+    }
+    else
+    {
+      GPIOD_PCOR = (1 << 13);
+    }
+  }
+
+  LastAddress = value;
 }
 
 

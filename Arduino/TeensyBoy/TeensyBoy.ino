@@ -89,11 +89,42 @@ void setup()
   FROM = SD.open("/MK/MK.gba", FILE_READ);
 
   processor.CreateCores(&processor, &FROM);
-  Serial.println("Init Complete");
 
   Serial.println("Checking and Resetting Memory...");
   Serial.flush();
 
+  unsigned long WriteTime = 0.0;
+  unsigned long ReadTime = 0.0;
+  unsigned long WriteTimeSeq = 0.0;
+  unsigned long ReadTimeSeq = 0.0;
+  unsigned long Timer = 0;
+  
+  Timer = micros();
+  processor.SPIRAMWrite(128, 128);
+  Timer = micros() - Timer;
+  WriteTime = Timer;
+
+  Timer = micros();
+  processor.SPIRAMWrite(129, 128);
+  Timer = micros() - Timer;
+  WriteTimeSeq = Timer;
+  
+  Timer = micros();
+  processor.SPIRAMRead(128);
+  Timer = micros() - Timer;
+  ReadTime = Timer;
+
+  Timer = micros();
+  processor.SPIRAMRead(129);
+  Timer = micros() - Timer;
+  ReadTimeSeq = Timer;
+
+  Serial.println("Memory Read Time: " + String(ReadTime) + "us");
+  Serial.println("Memory Write Time: " + String(WriteTime) + "us");
+  
+  Serial.println("Memory Read Time Seq: " + String(ReadTimeSeq) + "us");
+  Serial.println("Memory Write Time Seq: " + String(WriteTimeSeq) + "us");
+  
   while(true)
   {
     uint8_t val = 0;
@@ -122,6 +153,8 @@ void setup()
   
     delay(1000);
   }
+  Serial.println("Init Complete");
+  Serial.println("Emulation Starting..");
 }
 
 int32_t vramCycles = 0;
