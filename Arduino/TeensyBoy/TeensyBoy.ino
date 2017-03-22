@@ -88,7 +88,7 @@ void setup()
   SD.begin(BUILTIN_SDCARD);
   FROM = SD.open("/MK/MK.gba", FILE_READ);
 
-  processor.CreateCores(&processor, &FROM);
+  processor.CreateCores(&processor, &FROM, true);
 
   ARM_DEMCR |= ARM_DEMCR_TRCENA;
   ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;

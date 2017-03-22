@@ -174,7 +174,7 @@ Processor::Processor()
   digitalWrite(ADD18, LOW);
 }
 
-void Processor::CreateCores(class Processor *par, class File *rom)
+void Processor::CreateCores(class Processor *par, class File *rom, bool SkipBios)
 {
   digitalWrite(CE, LOW);
   ROM = rom;
@@ -183,8 +183,7 @@ void Processor::CreateCores(class Processor *par, class File *rom)
   thumbCore = ThumbCore(SelfReference);
   sound.StartSM(44100, SelfReference);
   LoadCartridge();
-
-  Reset(false);
+  Reset(SkipBios);
 }
 
 void Processor::Print(const char* value, uint32_t v)

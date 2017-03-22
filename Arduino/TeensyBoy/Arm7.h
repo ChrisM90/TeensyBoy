@@ -168,7 +168,7 @@ class Processor
     //Methods
     Processor();
     void Print(const char* value, uint32_t v);
-    void CreateCores(class Processor *par, class File *rom);
+    void CreateCores(class Processor *par, class File *rom, bool SkipBios);
     bool ArmState();
     bool SPSRExists();
     uint32_t GetWaitCycles();
