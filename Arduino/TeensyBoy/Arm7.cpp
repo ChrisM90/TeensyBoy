@@ -2608,15 +2608,87 @@ void Processor::SPIRAMWrite(uint32_t address, uint8_t value)
     AccessMode = 1;
   }
   
-  //Write IO Pins
-  digitalWriteFast(2, (value & 0x01));
-  digitalWriteFast(3, ((value >> 1) & 0x01));
-  digitalWriteFast(4, ((value >> 2) & 0x01));
-  digitalWriteFast(5, ((value >> 3) & 0x01));
-  digitalWriteFast(6, ((value >> 4) & 0x01));
-  digitalWriteFast(7, ((value >> 5) & 0x01));
-  digitalWriteFast(8, ((value >> 6) & 0x01));
-  digitalWriteFast(9, ((value >> 7) & 0x01));
+  //     Set         Clear       Bitmask
+  //DIO0 GPIOD_PSOR  GPIOD_PCOR  (1 << 0)
+  //DIO1 GPIOA_PSOR  GPIOA_PCOR  (1 << 12)
+  //DIO2 GPIOA_PSOR  GPIOA_PCOR  (1 << 13)
+  //DIO3 GPIOD_PSOR  GPIOD_PCOR  (1 << 7)
+  //DIO4 GPIOD_PSOR  GPIOD_PCOR  (1 << 4)
+  //DIO5 GPIOD_PSOR  GPIOD_PCOR  (1 << 2)
+  //DIO6 GPIOD_PSOR  GPIOD_PCOR  (1 << 3)
+  //DIO7 GPIOC_PSOR  GPIOC_PCOR  (1 << 3)
+
+  if((value & 0x01)) //DIO0
+  {
+    GPIOD_PSOR = (1 << 0);
+  }
+  else
+  {
+    GPIOD_PCOR = (1 << 0);
+  }
+
+  if(((value >> 1) & 0x01)) //DIO1
+  {
+    GPIOA_PSOR = (1 << 12);
+  }
+  else
+  {
+    GPIOA_PCOR = (1 << 12);
+  }
+
+  if(((value >> 2) & 0x01)) //DIO2
+  {
+    GPIOA_PSOR = (1 << 13);
+  }
+  else
+  {
+    GPIOA_PCOR = (1 << 13);
+  }
+
+  if(((value >> 3) & 0x01)) //DIO3
+  {
+    GPIOD_PSOR = (1 << 7);
+  }
+  else
+  {
+    GPIOD_PCOR = (1 << 7);
+  }
+
+  if(((value >> 4) & 0x01)) //DIO4
+  {
+    GPIOD_PSOR = (1 << 4);
+  }
+  else
+  {
+    GPIOD_PCOR = (1 << 4);
+  }
+
+  if(((value >> 5) & 0x01)) //DIO5
+  {
+    GPIOD_PSOR = (1 << 2);
+  }
+  else
+  {
+    GPIOD_PCOR = (1 << 2);
+  }
+
+  if(((value >> 6) & 0x01)) //DIO6
+  {
+    GPIOD_PSOR = (1 << 3);
+  }
+  else
+  {
+    GPIOD_PCOR = (1 << 3);
+  }
+
+  if(((value >> 7) & 0x01)) //DIO7
+  {
+    GPIOC_PSOR = (1 << 3);
+  }
+  else
+  {
+    GPIOC_PCOR = (1 << 3);
+  }
 
   //Back to Read
   digitalWriteFast(WE, HIGH);
