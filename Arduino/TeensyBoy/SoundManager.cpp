@@ -24,6 +24,7 @@
 
 #include "SoundManager.h"
 #include "Arm7.h"
+#include <Audio.h>
 
 const int cpuFreq = 16 * 1024 * 1024;
 Processor *parents;
@@ -39,12 +40,17 @@ Processor *parents;
 
 #define ioRegStart  0x00048000 //0x48000 - 0x484FF = 0x4FF
 
+AudioOutputAnalog dac; //on-chip DAC
+AudioPlayMemory   audioplayer;
+AudioConnection   c1(audioplayer, 0, dac, 0);
+
 SoundManager::SoundManager() {}
 
 void SoundManager::StartSM(int32_t Frequency, class Processor *par)
 {
   SetFrequency(Frequency);
   parents = par;
+  AudioMemory(10);
 }
 
 int32_t SoundManager::GetFrequency()
