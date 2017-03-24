@@ -284,8 +284,8 @@ void EnterHBlank()
   // Advance the bgx registers
   for (int32_t bg = 0; bg <= 1; bg++)
   {
-    uint16_t dmx = (uint16_t)processor.ReadU16(BG2PB + (uint32_t)bg * 0x10, ioRegStart); //Read BG2PB from IOReg
-    uint16_t dmy = (uint16_t)processor.ReadU16(BG2PD+ (uint32_t)bg * 0x10, ioRegStart); //Read BG2PD from IOReg
+    int16_t dmx = (int16_t)processor.ReadU16(BG2PB + (uint32_t)bg * 0x10, ioRegStart); //Read BG2PB from IOReg
+    int16_t dmy = (int16_t)processor.ReadU16(BG2PD+ (uint32_t)bg * 0x10, ioRegStart); //Read BG2PD from IOReg
     processor.bgx[bg] += dmx;
     processor.bgy[bg] += dmy;
   }
@@ -365,6 +365,9 @@ void RenderLine()
   }
 
   dispCnt = processor.ReadU16(DISPCNT, ioRegStart); //Read DISPCNT 0x0 from IOReg
+
+  Serial.println("Renderline Start: " + String(curLine, DEC) + " " + String(dispCnt ,DEC));
+  Serial.flush();
 
   if ((dispCnt & (1 << 7)) != 0)
   {
@@ -463,6 +466,9 @@ void RenderLine()
       case 5: RenderMode5Line(); break;
     }
   }
+
+  Serial.println("Renderline Finished: " + String(curLine, DEC) + " " + String(dispCnt ,DEC));
+  Serial.flush();
 }
 
 void DrawBackdrop()
@@ -620,10 +626,9 @@ void RenderTextBg(uint8_t bg)
 }
 
 void DrawSprites(uint8_t pri)
-{
+{ 
   if (winEnabled)
   {
-    //Serial.println("Draw Sprites Type: " + String(blendType, DEC));
     switch (blendType)
     {
     case 0:
@@ -753,7 +758,6 @@ void RenderMode0Line()
         }
       }
     }
-
     DrawSprites(pri);
   }
 }
@@ -1218,6 +1222,9 @@ void DrawSpritesNormal(uint8_t priority)
 
   uint8_t blendMaskType = (uint8_t)(1 << 4);
 
+  Serial.println("DrawSpritesNormal Started");
+  Serial.flush();
+
   for (int32_t oamNum = 127; oamNum >= 0; oamNum--)
   {
     uint16_t attr2 = processor.ReadU16Debug(OAM_BASE + (uint32_t)(oamNum * 8) + 4);
@@ -1594,6 +1601,8 @@ void DrawSpritesNormal(uint8_t priority)
 
         if ((attr0 & (1 << 13)) != 0)
         {
+          Serial.println("DrawSpritesNormal 256 Colors Started");
+          Serial.flush();
           // 256 colors
           for (int32_t i = x; i < x + Width; i++)
           {
@@ -1612,9 +1621,13 @@ void DrawSpritesNormal(uint8_t priority)
             }
             if (((i - x) & 7) == 7) baseSprite += baseInc;
           }
+          Serial.println("DrawSpritesNormal 256 Colors Finished");
+          Serial.flush();
         }
         else
         {
+          Serial.println("DrawSpritesNormal 16 Colors Started");
+          Serial.flush();
           // 16 colors
           int32_t palIdx = 0x200 + (((attr2 >> 12) & 0xF) * 16 * 2);
           for (int32_t i = x; i < x + Width; i++)
@@ -1642,6 +1655,8 @@ void DrawSpritesNormal(uint8_t priority)
             }
             if (((i - x) & 7) == 7) baseSprite += baseInc;
           }
+          Serial.println("DrawSpritesNormal 16 Colors Finished");
+          Serial.flush();
         }
       }
       else
