@@ -32,7 +32,6 @@
 #include <SD_t3.h>
 
 //---------------------Memory----------------------------//
-uint16_t keyState = 0x3FF;
 bool inUnreadable = false;
 uint32_t dmaRegs[4][4];
 uint32_t timerCnt[4];

@@ -164,6 +164,7 @@ class Processor
     bool cpuHalted = false;
     uint8_t OAMRAM[0x3FF];
     uint8_t IOREG[0x4FF];
+    uint16_t keyState = 0x3FF;
 
     //Methods
     Processor();

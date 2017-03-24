@@ -71,6 +71,17 @@ File FROM;
 #define palRamStart 0x00068500 //0x68500 - 0x688FF = 0x3FF
 #define OAM_BASE 0x7000000
 
+#define ButtonA 18
+#define ButtonB 17
+#define ButtonSelect 26
+#define ButtonStart 16
+#define ButtonLeft 20
+#define ButtonRight 19
+#define ButtonUp 22
+#define ButtonDown 21
+#define ButtonRSholder 38
+#define ButtonLSholder 39
+
 ILI9341_t3DMA tft = ILI9341_t3DMA(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO);
 unsigned long FrameTime = 0;
 float FPS = 0;
@@ -80,6 +91,17 @@ void setup()
   delay(2000);
   
   Serial.begin(57600);
+
+  pinMode(ButtonA, INPUT_PULLUP);
+  pinMode(ButtonB, INPUT_PULLUP);
+  pinMode(ButtonSelect, INPUT_PULLUP);
+  pinMode(ButtonStart, INPUT_PULLUP);
+  pinMode(ButtonLeft, INPUT_PULLUP);
+  pinMode(ButtonRight, INPUT_PULLUP);
+  pinMode(ButtonUp, INPUT_PULLUP);
+  pinMode(ButtonDown, INPUT_PULLUP);
+  pinMode(ButtonRSholder, INPUT_PULLUP);
+  pinMode(ButtonLSholder, INPUT_PULLUP);
   
   tft.begin();
   tft.dfillScreen(ILI9341_BLACK);
@@ -180,6 +202,8 @@ void loop()
   
   for (int32_t i = 0; i < numSteps; i++)
   {
+    GetButtons();
+    
     if (vramCycles <= 0)
     {
       if (inHblank)
@@ -205,7 +229,7 @@ void loop()
 
     //Serial.println("Loop: " + String(loopcount, DEC));
 
-    loopcount++;
+    //loopcount++;
   }
 }
 
@@ -810,8 +834,8 @@ void RenderMode3Line()
     uint32_t x = processor.bgx[0];
     uint32_t y = processor.bgy[0];
 
-    uint16_t dx = (uint16_t)processor.ReadU16(BG2PA, ioRegStart);
-    uint16_t dy = (uint16_t)processor.ReadU16(BG2PC, ioRegStart);
+    int16_t dx = (int16_t)processor.ReadU16(BG2PA, ioRegStart);
+    int16_t dy = (int16_t)processor.ReadU16(BG2PC, ioRegStart);
 
     for (int32_t i = 0; i < 240; i++)
     {
@@ -860,8 +884,8 @@ void RenderMode4Line()
     int32_t x = processor.bgx[0];
     int32_t y = processor.bgy[0];
 
-    uint16_t dx = (uint16_t)processor.ReadU16(BG2PA, ioRegStart);
-    uint16_t dy = (uint16_t)processor.ReadU16(BG2PC, ioRegStart);
+    int16_t dx = (int16_t)processor.ReadU16(BG2PA, ioRegStart);
+    int16_t dy = (int16_t)processor.ReadU16(BG2PC, ioRegStart);
 
     for (int32_t i = 0; i < 240; i++)
     {
@@ -912,8 +936,8 @@ void RenderMode5Line()
     int32_t x = processor.bgx[0];
     int32_t y = processor.bgy[0];
 
-    uint16_t dx = (uint16_t)processor.ReadU16(BG2PA, ioRegStart);
-    uint16_t dy = (uint16_t)processor.ReadU16(BG2PC, ioRegStart);
+    int16_t dx = (int16_t)processor.ReadU16(BG2PA, ioRegStart);
+    int16_t dy = (int16_t)processor.ReadU16(BG2PC, ioRegStart);
 
     for (int32_t i = 0; i < 240; i++)
     {
@@ -1106,10 +1130,10 @@ void DrawSpriteWindows()
     {
       int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-      uint16_t dx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-      uint16_t dmx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-      uint16_t dy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-      uint16_t dmy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+      int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+      int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+      int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+      int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
       int32_t cx = rWidth / 2;
       int32_t cy = rHeight / 2;
@@ -1128,8 +1152,8 @@ void DrawSpriteWindows()
         pitch = 0x20;
       }
 
-      uint16_t rx = (uint16_t)((dmx * (spritey - cy)) - (cx * dx) + (Width << 7));
-      uint16_t ry = (uint16_t)((dmy * (spritey - cy)) - (cx * dy) + (Height << 7));
+      int16_t rx = (int16_t)((dmx * (spritey - cy)) - (cx * dx) + (Width << 7));
+      int16_t ry = (int16_t)((dmy * (spritey - cy)) - (cx * dy) + (Height << 7));
 
       // Draw a rot/scale sprite
       if ((attr0 & (1 << 13)) != 0)
@@ -1420,10 +1444,10 @@ void DrawSpritesNormal(uint8_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint8_t dx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint8_t dmx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint8_t dy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint8_t dmy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -1624,10 +1648,10 @@ void DrawSpritesNormal(uint8_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint16_t dx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint16_t dmx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint16_t dy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint16_t dmy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -1646,8 +1670,8 @@ void DrawSpritesNormal(uint8_t priority)
           pitch = 0x20;
         }
 
-        int32_t rx = (uint32_t)((dmx * (spritey - cy)) - (cx * dx) + (Width << 7));
-        int32_t ry = (uint32_t)((dmy * (spritey - cy)) - (cx * dy) + (Height << 7));
+        int32_t rx = (int32_t)((dmx * (spritey - cy)) - (cx * dx) + (Width << 7));
+        int32_t ry = (int32_t)((dmy * (spritey - cy)) - (cx * dy) + (Height << 7));
 
         // Draw a rot/scale sprite
         if ((attr0 & (1 << 13)) != 0)
@@ -1660,8 +1684,8 @@ void DrawSpritesNormal(uint8_t priority)
 
             if ((i & 0x1ff) < 240 && tx >= 0 && tx < Width && ty >= 0 && ty < Height && true)
             {
-              uint32_t curIdx = (baseSprite + ((ty / 8) * pitch) + ((tx / 8) * scale)) * 32 + ((ty & 7) * 8) + (tx & 7);
-              uint32_t lookup = processor.ReadU8(0x10000 + curIdx, vRamStart);
+              int32_t curIdx = (baseSprite + ((ty / 8) * pitch) + ((tx / 8) * scale)) * 32 + ((ty & 7) * 8) + (tx & 7);
+              int32_t lookup = processor.ReadU8(0x10000 + curIdx, vRamStart);
               if (lookup != 0)
               {
                 uint16_t pixelColor = GBAToColor(processor.ReadU16(0x200 + lookup * 2, palRamStart));
@@ -1943,10 +1967,10 @@ void DrawSpritesBlend(uint8_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint8_t dx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint8_t dmx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint8_t dy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint8_t dmy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -2187,10 +2211,10 @@ void DrawSpritesBlend(uint8_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint16_t dx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint16_t dmx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint16_t dy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint16_t dmy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -2546,10 +2570,10 @@ void DrawSpritesBrightInc(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint8_t dx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint8_t dmx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint8_t dy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint8_t dmy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -2725,6 +2749,7 @@ void DrawSpritesBrightInc(int32_t priority)
         else
         {
           // 16 colors
+          int32_t palIdx = 0x200 + (((attr2 >> 12) & 0xF) * 16 * 2);
           for (int32_t i = x; i < x + Width; i++)
           {
             if ((i & 0x1ff) < 240 && true)
@@ -2743,7 +2768,7 @@ void DrawSpritesBrightInc(int32_t priority)
               }
               if (lookup != 0)
               {
-			    uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+			    uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
                 uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
                 uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
                 uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
@@ -2763,10 +2788,10 @@ void DrawSpritesBrightInc(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint16_t dx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint16_t dmx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint16_t dy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint16_t dmy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -2785,8 +2810,8 @@ void DrawSpritesBrightInc(int32_t priority)
           pitch = 0x20;
         }
 
-        int32_t rx = (uint32_t)((dmx * (spritey - cy)) - (cx * dx) + (Width << 7));
-        int32_t ry = (uint32_t)((dmy * (spritey - cy)) - (cx * dy) + (Height << 7));
+        int32_t rx = (int32_t)((dmx * (spritey - cy)) - (cx * dx) + (Width << 7));
+        int32_t ry = (int32_t)((dmy * (spritey - cy)) - (cx * dy) + (Height << 7));
 
         // Draw a rot/scale sprite
         if ((attr0 & (1 << 13)) != 0)
@@ -2822,6 +2847,7 @@ void DrawSpritesBrightInc(int32_t priority)
         else
         {
           // 16 colors
+          int32_t palIdx = 0x200 + (((attr2 >> 12) & 0xF) * 16 * 2);
           for (int32_t i = x; i < x + rWidth; i++)
           {
             int32_t tx = rx >> 8;
@@ -2841,7 +2867,7 @@ void DrawSpritesBrightInc(int32_t priority)
               }
               if (lookup != 0)
               {
-			    uint16_t pixelColor = processor.ReadU16(0x200 + lookup * 2, palRamStart);
+			    uint16_t pixelColor = processor.ReadU16(palIdx + lookup * 2, palRamStart);
                 uint16_t r = (uint8_t)((pixelColor) & 0x1F);       //First 5 Bits
                 uint16_t g = (uint8_t)((pixelColor >> 5) & 0x1F);  //Middle 5 Bits
                 uint16_t b = (uint8_t)((pixelColor >> 10) & 0x1F);   //Last 5 Bits
@@ -3095,10 +3121,10 @@ void DrawSpritesBrightDec(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint8_t dx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint8_t dmx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint8_t dy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint8_t dmy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -3313,10 +3339,10 @@ void DrawSpritesBrightDec(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint16_t dx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint16_t dmx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint16_t dy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint16_t dmy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -3660,10 +3686,10 @@ void DrawSpritesWindow(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint8_t dx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint8_t dmx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint8_t dy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint8_t dmy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -3878,10 +3904,10 @@ void DrawSpritesWindow(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint16_t dx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint16_t dmx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint16_t dy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint16_t dmy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -4211,10 +4237,10 @@ void DrawSpritesWindowBlend(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint8_t dx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint8_t dmx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint8_t dy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint8_t dmy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -4483,10 +4509,10 @@ void DrawSpritesWindowBlend(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint16_t dx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint16_t dmx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint16_t dy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint16_t dmy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -4872,10 +4898,10 @@ void DrawSpritesWindowBrightInc(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint8_t dx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint8_t dmx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint8_t dy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint8_t dmy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -5120,10 +5146,10 @@ void DrawSpritesWindowBrightInc(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint16_t dx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint16_t dmx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint16_t dy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint16_t dmy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -5485,10 +5511,10 @@ void DrawSpritesWindowBrightDec(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint8_t dx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint8_t dmx = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint8_t dy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint8_t dmy = (uint8_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -5735,10 +5761,10 @@ void DrawSpritesWindowBrightDec(int32_t priority)
       {
         int32_t rotScaleParam = (attr1 >> 9) & 0x1F;
 
-        uint16_t dx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
-        uint16_t dmx = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
-        uint16_t dy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
-        uint16_t dmy = (uint16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
+        int16_t dx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x6);
+        int16_t dmx = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0xE);
+        int16_t dy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x16);
+        int16_t dmy = (int16_t)processor.ReadU16Debug(OAM_BASE + (uint32_t)(rotScaleParam * 8 * 4) + 0x1E);
 
         int32_t cx = rWidth / 2;
         int32_t cy = rHeight / 2;
@@ -5876,8 +5902,8 @@ void RenderRotScaleBgNormal(int32_t bg)
   int32_t x = processor.bgx[bg - 2];
   int32_t y = processor.bgy[bg - 2];
 
-  uint16_t dx = (uint16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
-  uint16_t dy = (uint16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dx = (int16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dy = (int16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
 
   bool transparent = (bgcnt & (1 << 13)) == 0;
 
@@ -5890,7 +5916,7 @@ void RenderRotScaleBgNormal(int32_t bg)
 
       if ((ax >= 0 && ax < Width && ay >= 0 && ay < Height) || !transparent)
       {
-        int32_t tmpTileIdx = (uint32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
+        int32_t tmpTileIdx = (int32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
         int32_t tileChar = processor.ReadU8(tmpTileIdx, vRamStart);
 
         int32_t lookup = processor.ReadU8(charBase + (tileChar * 64) + ((ay & 7) * 8) + (ax & 7), vRamStart);
@@ -5928,8 +5954,8 @@ void RenderRotScaleBgBlend(int32_t bg)
   int32_t x = processor.bgx[bg - 2];
   int32_t y = processor.bgy[bg - 2];
 
-  uint16_t dx = (uint16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
-  uint16_t dy = (uint16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dx = (int16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dy = (int16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
 
   bool transparent = (bgcnt & (1 << 13)) == 0;
 
@@ -5942,7 +5968,7 @@ void RenderRotScaleBgBlend(int32_t bg)
 
       if ((ax >= 0 && ax < Width && ay >= 0 && ay < Height) || !transparent)
       {
-        int32_t tmpTileIdx = (uint32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
+        int32_t tmpTileIdx = (int32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
         int32_t tileChar = processor.ReadU8(tmpTileIdx, vRamStart);
 
         int32_t lookup = processor.ReadU8(charBase + (tileChar * 64) + ((ay & 7) * 8) + (ax & 7), vRamStart);
@@ -6002,8 +6028,8 @@ void RenderRotScaleBgBrightInc(int32_t bg)
   int32_t x = processor.bgx[bg - 2];
   int32_t y = processor.bgy[bg - 2];
 
-  uint16_t dx = (uint16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
-  uint16_t dy = (uint16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dx = (int16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dy = (int16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
 
   bool transparent = (bgcnt & (1 << 13)) == 0;
 
@@ -6016,7 +6042,7 @@ void RenderRotScaleBgBrightInc(int32_t bg)
 
       if ((ax >= 0 && ax < Width && ay >= 0 && ay < Height) || !transparent)
       {
-        int32_t tmpTileIdx = (uint32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
+        int32_t tmpTileIdx = (int32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
         int32_t tileChar = processor.ReadU8(tmpTileIdx, vRamStart);
 
         int32_t lookup = processor.ReadU8(charBase + (tileChar * 64) + ((ay & 7) * 8) + (ax & 7), vRamStart);
@@ -6061,8 +6087,8 @@ void RenderRotScaleBgBrightDec(int32_t bg)
   int32_t x = processor.bgx[bg - 2];
   int32_t y = processor.bgy[bg - 2];
 
-  uint16_t dx = (uint16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
-  uint16_t dy = (uint16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dx = (int16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dy = (int16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
 
   bool transparent = (bgcnt & (1 << 13)) == 0;
 
@@ -6075,7 +6101,7 @@ void RenderRotScaleBgBrightDec(int32_t bg)
 
       if ((ax >= 0 && ax < Width && ay >= 0 && ay < Height) || !transparent)
       {
-        int32_t tmpTileIdx = (uint32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
+        int32_t tmpTileIdx = (int32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
         int32_t tileChar = processor.ReadU8(tmpTileIdx, vRamStart);
 
         int32_t lookup = processor.ReadU8(charBase + (tileChar * 64) + ((ay & 7) * 8) + (ax & 7), vRamStart);
@@ -6120,8 +6146,8 @@ void RenderRotScaleBgWindow(int32_t bg)
   int32_t x = processor.bgx[bg - 2];
   int32_t y = processor.bgy[bg - 2];
 
-  uint16_t dx = (uint16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
-  uint16_t dy = (uint16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dx = (int16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dy = (int16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
 
   bool transparent = (bgcnt & (1 << 13)) == 0;
 
@@ -6134,7 +6160,7 @@ void RenderRotScaleBgWindow(int32_t bg)
 
       if ((ax >= 0 && ax < Width && ay >= 0 && ay < Height) || !transparent)
       {
-        int32_t tmpTileIdx = (uint32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
+        int32_t tmpTileIdx = (int32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
         int32_t tileChar = processor.ReadU8(tmpTileIdx, vRamStart);
 
         int32_t lookup = processor.ReadU8(charBase + (tileChar * 64) + ((ay & 7) * 8) + (ax & 7), vRamStart);
@@ -6172,8 +6198,8 @@ void RenderRotScaleBgWindowBlend(int32_t bg)
   int32_t x = processor.bgx[bg - 2];
   int32_t y = processor.bgy[bg - 2];
 
-  uint16_t dx = (uint16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
-  uint16_t dy = (uint16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dx = (int16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dy = (int16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
 
   bool transparent = (bgcnt & (1 << 13)) == 0;
 
@@ -6186,7 +6212,7 @@ void RenderRotScaleBgWindowBlend(int32_t bg)
 
       if ((ax >= 0 && ax < Width && ay >= 0 && ay < Height) || !transparent)
       {
-        int32_t tmpTileIdx = (uint32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
+        int32_t tmpTileIdx = (int32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
         int32_t tileChar = processor.ReadU8(tmpTileIdx, vRamStart);
 
         int32_t lookup = processor.ReadU8(charBase + (tileChar * 64) + ((ay & 7) * 8) + (ax & 7), vRamStart);
@@ -6250,8 +6276,8 @@ void RenderRotScaleBgWindowBrightInc(int32_t bg)
   int32_t x = processor.bgx[bg - 2];
   int32_t y = processor.bgy[bg - 2];
 
-  uint16_t dx = (uint16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
-  uint16_t dy = (uint16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dx = (int16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dy = (int16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
 
   bool transparent = (bgcnt & (1 << 13)) == 0;
 
@@ -6264,7 +6290,7 @@ void RenderRotScaleBgWindowBrightInc(int32_t bg)
 
       if ((ax >= 0 && ax < Width && ay >= 0 && ay < Height) || !transparent)
       {
-        uint32_t tmpTileIdx = (uint32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
+        uint32_t tmpTileIdx = (int32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
         uint32_t tileChar = processor.ReadU8(tmpTileIdx, vRamStart);
 
         int32_t lookup = processor.ReadU8(charBase + (tileChar * 64) + ((ay & 7) * 8) + (ax & 7), vRamStart);
@@ -6318,8 +6344,8 @@ void RenderRotScaleBgWindowBrightDec(int32_t bg)
   int32_t x = processor.bgx[bg - 2];
   int32_t y = processor.bgy[bg - 2];
 
-  uint16_t dx = (uint16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
-  uint16_t dy = (uint16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dx = (int16_t)processor.ReadU16(BG2PA + (uint32_t)(bg - 2) * 0x10, ioRegStart);
+  int16_t dy = (int16_t)processor.ReadU16(BG2PC + (uint32_t)(bg - 2) * 0x10, ioRegStart);
 
   bool transparent = (bgcnt & (1 << 13)) == 0;
 
@@ -6332,7 +6358,7 @@ void RenderRotScaleBgWindowBrightDec(int32_t bg)
 
       if ((ax >= 0 && ax < Width && ay >= 0 && ay < Height) || !transparent)
       {
-        int32_t tmpTileIdx = (uint32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
+        int32_t tmpTileIdx = (int32_t)(screenBase + ((ay & (Height - 1)) / 8) * (Width / 8) + ((ax & (Width - 1)) / 8));
         int32_t tileChar = processor.ReadU8(tmpTileIdx, vRamStart);
 
         int32_t lookup = processor.ReadU8(charBase + (tileChar * 64) + ((ay & 7) * 8) + (ax & 7), vRamStart);
@@ -7432,6 +7458,114 @@ void DrawPixel(uint16_t y, uint16_t x, int16_t color) //Stretch Image every seco
     }  
 }
 
+void GetButtons()
+{
+  //Button Index
+  // 0 = A
+  // 1 = B
+  // 2 = Select
+  // 3 = Start
+  // 4 = Right
+  // 5 = Left
+  // 6 = Up
+  // 7 = Down
+  // 8 = Right Sholder
+  // 9 = Left Sholder
+  
+  uint16_t keyreg = 0x3FF;
+
+  if(!digitalReadFast(ButtonA))
+  {
+    keyreg &= (uint16_t)(~(1U << 0)); //Pressed
+  }
+  else
+  {
+    keyreg |= (uint16_t)(1U << 0); //Unpressed
+  }
+
+  if(!digitalReadFast(ButtonB))
+  {
+    keyreg &= (uint16_t)(~(1U << 1)); //Pressed
+  }
+  else
+  {
+    keyreg |= (uint16_t)(1U << 1); //Unpressed
+  }
+
+  if(!digitalReadFast(ButtonSelect))
+  {
+    keyreg &= (uint16_t)(~(1U << 2)); //Pressed
+  }
+  else
+  {
+    keyreg |= (uint16_t)(1U << 2); //Unpressed
+  }
+
+  if(!digitalReadFast(ButtonStart))
+  {
+    keyreg &= (uint16_t)(~(1U << 3)); //Pressed
+  }
+  else
+  {
+    keyreg |= (uint16_t)(1U << 3); //Unpressed
+  }
+
+  if(!digitalReadFast(ButtonLeft))
+  {
+    keyreg &= (uint16_t)(~(1U << 4)); //Pressed
+  }
+  else
+  {
+    keyreg |= (uint16_t)(1U << 4); //Unpressed
+  }
+
+  if(!digitalReadFast(ButtonRight))
+  {
+    keyreg &= (uint16_t)(~(1U << 5)); //Pressed
+  }
+  else
+  {
+    keyreg |= (uint16_t)(1U << 5); //Unpressed
+  }
+  
+  if(!digitalReadFast(ButtonUp))
+  {
+    keyreg &= (uint16_t)(~(1U << 6)); //Pressed
+  }
+  else
+  {
+    keyreg |= (uint16_t)(1U << 6); //Unpressed
+  }
+
+  if(!digitalReadFast(ButtonDown))
+  {
+    keyreg &= (uint16_t)(~(1U << 7)); //Pressed
+  }
+  else
+  {
+    keyreg |= (uint16_t)(1U << 7); //Unpressed
+  }
+
+  if(!digitalReadFast(ButtonRSholder))
+  {
+    keyreg &= (uint16_t)(~(1U << 8)); //Pressed
+  }
+  else
+  {
+    keyreg |= (uint16_t)(1U << 8); //Unpressed
+  }
+
+  if(!digitalReadFast(ButtonLSholder))
+  {
+    keyreg &= (uint16_t)(~(1U << 9)); //Pressed
+  }
+  else
+  {
+    keyreg |= (uint16_t)(1U << 9); //Unpressed
+  }
+
+  processor.keyState = keyreg;
+}
 
 
 
