@@ -366,9 +366,6 @@ void RenderLine()
 
   dispCnt = processor.ReadU16(DISPCNT, ioRegStart); //Read DISPCNT 0x0 from IOReg
 
-  Serial.println("Renderline Start: " + String(curLine, DEC) + " " + String(dispCnt ,DEC));
-  Serial.flush();
-
   if ((dispCnt & (1 << 7)) != 0)
   {
     uint16_t bgColor = GBAToColor(0x7FFF); //White
@@ -466,9 +463,6 @@ void RenderLine()
       case 5: RenderMode5Line(); break;
     }
   }
-
-  Serial.println("Renderline Finished: " + String(curLine, DEC) + " " + String(dispCnt ,DEC));
-  Serial.flush();
 }
 
 void DrawBackdrop()
@@ -1222,9 +1216,6 @@ void DrawSpritesNormal(uint8_t priority)
 
   uint8_t blendMaskType = (uint8_t)(1 << 4);
 
-  Serial.println("DrawSpritesNormal Started");
-  Serial.flush();
-
   for (int32_t oamNum = 127; oamNum >= 0; oamNum--)
   {
     uint16_t attr2 = processor.ReadU16Debug(OAM_BASE + (uint32_t)(oamNum * 8) + 4);
@@ -1601,8 +1592,6 @@ void DrawSpritesNormal(uint8_t priority)
 
         if ((attr0 & (1 << 13)) != 0)
         {
-          Serial.println("DrawSpritesNormal 256 Colors Started");
-          Serial.flush();
           // 256 colors
           for (int32_t i = x; i < x + Width; i++)
           {
@@ -1621,13 +1610,9 @@ void DrawSpritesNormal(uint8_t priority)
             }
             if (((i - x) & 7) == 7) baseSprite += baseInc;
           }
-          Serial.println("DrawSpritesNormal 256 Colors Finished");
-          Serial.flush();
         }
         else
         {
-          Serial.println("DrawSpritesNormal 16 Colors Started");
-          Serial.flush();
           // 16 colors
           int32_t palIdx = 0x200 + (((attr2 >> 12) & 0xF) * 16 * 2);
           for (int32_t i = x; i < x + Width; i++)
@@ -1655,8 +1640,6 @@ void DrawSpritesNormal(uint8_t priority)
             }
             if (((i - x) & 7) == 7) baseSprite += baseInc;
           }
-          Serial.println("DrawSpritesNormal 16 Colors Finished");
-          Serial.flush();
         }
       }
       else
@@ -1716,7 +1699,7 @@ void DrawSpritesNormal(uint8_t priority)
         {
           // 16 colors
           int32_t palIdx = 0x200 + (((attr2 >> 12) & 0xF) * 16 * 2);
-          for (uint8_t i = x; i < x + rWidth; i++)
+          for (int32_t i = x; i < x + rWidth; i++)
           {
             int32_t tx = rx >> 8;
             int32_t ty = ry >> 8;
@@ -1725,6 +1708,7 @@ void DrawSpritesNormal(uint8_t priority)
             {
               int32_t curIdx = (baseSprite + ((ty / 8) * pitch) + ((tx / 8) * scale)) * 32 + ((ty & 7) * 4) + ((tx & 7) / 2);
               int32_t lookup = processor.ReadU8(0x10000 + curIdx, vRamStart);
+
               if ((tx & 1) == 0)
               {
                 lookup &= 0xf;
@@ -3730,7 +3714,7 @@ void DrawSpritesWindow(int32_t priority)
         if ((attr0 & (1 << 13)) != 0)
         {
           // 256 colors
-          for (uint8_t i = x; i < x + rWidth; i++)
+          for (int32_t i = x; i < x + rWidth; i++)
           {
             int32_t tx = rx >> 8;
             int32_t ty = ry >> 8;
@@ -5114,7 +5098,7 @@ void DrawSpritesWindowBrightInc(int32_t priority)
         {
           // 16 colors
           int32_t palIdx = 0x200 + (((attr2 >> 12) & 0xF) * 16 * 2);
-          for (uint8_t i = x; i < x + Width; i++)
+          for (int32_t i = x; i < x + Width; i++)
           {
             if ((i & 0x1ff) < 240 && (windowCover[i & 0x1ff] & (1 << 4)) != 0)
             {
@@ -5897,7 +5881,6 @@ void DrawSpritesWindowBrightDec(int32_t priority)
 //-----------Rot/Scale Bg---------------------------------
 void RenderRotScaleBgNormal(int32_t bg)
 {
-  //Serial.println("Render Rot Scale Bg Normal");
   uint8_t blendMaskType = (uint8_t)(1 << bg);
 
   uint16_t bgcnt = processor.ReadU16(BG0CNT + 0x2 * (uint32_t)bg, ioRegStart);
