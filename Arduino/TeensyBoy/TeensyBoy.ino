@@ -90,7 +90,7 @@ void setup()
 {
   delay(2000);
   
-  Serial.begin(57600);
+  Serial.begin(250000);
 
   pinMode(ButtonA, INPUT_PULLUP);
   pinMode(ButtonB, INPUT_PULLUP);
@@ -110,7 +110,7 @@ void setup()
   SD.begin(BUILTIN_SDCARD);
   FROM = SD.open("/MK/MK.gba", FILE_READ);
 
-  processor.CreateCores(&processor, &FROM, true);
+  processor.CreateCores(&processor, &FROM, false);
 
   ARM_DEMCR |= ARM_DEMCR_TRCENA;
   ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
@@ -122,40 +122,55 @@ void setup()
   unsigned long ReadTime = 0.0;
   unsigned long WriteTimeSeq = 0.0;
   unsigned long ReadTimeSeq = 0.0;
+  unsigned long AddressTime = 0.0;
+  unsigned long AddressTimeSeq = 0.0;
   unsigned long Timer = 0;
 
-  for(int i = 0; i < 20; i++)
+  for(int i = 0; i < 30; i++)
   {
     Timer = ARM_DWT_CYCCNT;
-    processor.SPIRAMWrite((i * 10), 128);
+    SPIRAMWrite((i * 10), 128);
     Timer = ARM_DWT_CYCCNT - Timer;
     WriteTime += Timer;
   
     Timer = ARM_DWT_CYCCNT;
-    processor.SPIRAMWrite((i * 10) + 1, 128);
+    SPIRAMWrite((i * 10) + 1, 128);
     Timer = ARM_DWT_CYCCNT - Timer;
     WriteTimeSeq += Timer;
     
     Timer = ARM_DWT_CYCCNT;
-    processor.SPIRAMRead((i * 10));
+    SPIRAMRead((i * 10));
     Timer = ARM_DWT_CYCCNT - Timer;
     ReadTime += Timer;
   
     Timer = ARM_DWT_CYCCNT;
-    processor.SPIRAMRead((i * 10) + 1);
+    SPIRAMRead((i * 10) + 1);
     Timer = ARM_DWT_CYCCNT - Timer;
     ReadTimeSeq += Timer;
 
-    processor.SPIRAMRead(0);
+    Timer = ARM_DWT_CYCCNT;
+    SetAddress((i * 10));
+    Timer = ARM_DWT_CYCCNT - Timer;
+    AddressTime += Timer;
+
+    Timer = ARM_DWT_CYCCNT;
+    SetAddress((i * 10) + 1);
+    Timer = ARM_DWT_CYCCNT - Timer;
+    AddressTimeSeq += Timer;
+
+    SPIRAMRead(0);
   }
 
   float timemulti = 1.0f / 240; //1 us divided by 240Mhz
 
-  Serial.println("Memory Read Time: " + String(((float)ReadTime / 20.0f) * timemulti) + "us");
-  Serial.println("Memory Write Time: " + String(((float)WriteTime / 20.0f) * timemulti) + "us");
+  Serial.println("Memory Read Time: " + String(((float)ReadTime / 30.0f) * timemulti) + "us");
+  Serial.println("Memory Write Time: " + String(((float)WriteTime / 30.0f) * timemulti) + "us");
   
-  Serial.println("Memory Read Time Seq: " + String(((float)ReadTimeSeq / 20.0f) * timemulti) + "us");
-  Serial.println("Memory Write Time Seq: " + String(((float)WriteTimeSeq / 20.0f) * timemulti) + "us");
+  Serial.println("Memory Read Time Seq: " + String(((float)ReadTimeSeq / 30.0f) * timemulti) + "us");
+  Serial.println("Memory Write Time Seq: " + String(((float)WriteTimeSeq / 30.0f) * timemulti) + "us");
+
+  Serial.println("Memory Address Time: " + String(((float)AddressTime / 30.0f) * timemulti) + "us");
+  Serial.println("Memory Address Time Seq: " + String(((float)AddressTimeSeq / 30.0f) * timemulti) + "us");
   
   while(true)
   {
@@ -163,8 +178,8 @@ void setup()
     bool failed = false;
     for(uint32_t i = 0; i < 0x80000; i++)
     {
-      processor.SPIRAMWrite(i, val);
-      uint8_t value = processor.SPIRAMRead(i);
+      SPIRAMWrite(i, val);
+      uint8_t value = SPIRAMRead(i);
   
       if(value != val)
       {
@@ -173,7 +188,7 @@ void setup()
         failed = true;
         break;
       }
-      processor.SPIRAMWrite(i, 0);
+      SPIRAMWrite(i, 0);
       val++;
     }
     
@@ -7564,6 +7579,7 @@ void GetButtons()
 
   processor.keyState = keyreg;
 }
+
 
 
 

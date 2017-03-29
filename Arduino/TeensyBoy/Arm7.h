@@ -26,6 +26,7 @@
 #define Arm7_h
 
 #include <inttypes.h>
+#include <Arduino.h>
 
 #define REG_BASE 0x4000000
 #define PAL_BASE 0x5000000
@@ -302,13 +303,249 @@ class Processor
     void WriteU8Funcs(uint16_t bank, uint32_t address, uint8_t value);
     void WriteU16Funcs(uint16_t bank, uint32_t address, uint16_t value);
     void WriteU32Funcs(uint16_t bank, uint32_t address, uint32_t value);
-
-    void SPIRAMWrite(uint32_t address, uint8_t value);
-    uint8_t SPIRAMRead(uint32_t address);
-    void SetAddress(uint32_t val);
 };
 
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+static inline void SetAddress(uint32_t value)
+{
+  //Pin assignments are going to have to change in order to acheive maximum speed...
+  //Memory Address Time Ran: 0.42us
+  //Memory Address Time Seq: 0.40us
+  
+  //           BITMASK       PORTSET       PORTCLR
+  // ADD0 0   //(1 << 16)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD1 1   //(1 << 17)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD2 24  //(1 << 26)    GPIOE_PSOR    GPIOE_PCOR
+  // ADD3 25  //(1 << 5)     GPIOA_PSOR    GPIOA_PCOR
+  // ADD4 31  //(1 << 10)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD5 32  //(1 << 11)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD6 40  //(1 << 28)    GPIOA_PSOR    GPIOA_PCOR
+  // ADD7 41  //(1 << 29)    GPIOA_PSOR    GPIOA_PCOR 
+  // ADD8 42  //(1 << 26)    GPIOA_PSOR    GPIOA_PCOR 
+  // ADD9 43  //(1 << 20)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD10 44 //(1 << 22)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD11 45 //(1 << 23)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD12 46 //(1 << 21)    GPIOB_PSOR    GPIOB_PCOR
+  // ADD13 47 //(1 << 8)     GPIOD_PSOR    GPIOD_PCOR 
+  // ADD14 48 //(1 << 9)     GPIOD_PSOR    GPIOD_PCOR 
+  // ADD15 49 //(1 << 4)     GPIOB_PSOR    GPIOB_PCOR
+  // ADD16 50 //(1 << 5)     GPIOB_PSOR    GPIOB_PCOR 
+  // ADD17 51 //(1 << 14)    GPIOD_PSOR    GPIOD_PCOR
+  // ADD18 52 //(1 << 13)    GPIOD_PSOR    GPIOD_PCOR
+
+  //GPIOB
+  //Bit   24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 9  8  7  6  5  4  3  2  1  0
+  //Pin   -  45 44 46 43 -  -  1  0  -  -  -  -  32 31 -  -  -  -  50 49 -  -  -  -
+  //Add   -  11 10 12 9  -  -  1  0  -  -  -  -  5  4  -  -  -  -  16 15 -  -  -  -
+
+  //GPIOA
+  //Bit   32 31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 9  8  7  6  5  4  3  2  1  0
+  //Pin   -  -  -  41 40 -  42 -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  25 -  -  -  -  -
+  //Add   -  -  -  7  6  -  8  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  3  -  -  -  -  -
+
+  //GPIOD
+  //Bit   16 15 14 13 12 11 10 9  8  7  6  5  4  3  2  1  0
+  //Pin   -  -  51 52 -  -  -  48 47 -  -  -  -  -  -  -  -
+  //Add   -  -  17 18 -  -  -  14 13 -  -  -  -  -  -  -  -
+
+  //GPIOE
+  //Bit   32 31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 9  8  7  6  5  4  3  2  1  0
+  //Pin   -  -  -  -  -  -  24 -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+  //Add   -  -  -  -  -  -  2  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -  -
+
+  //---------------------------Port B--------------------------------//
+  
+  GPIOB_PCOR |= 12782640; //Clear Address Lines On Port B
+  GPIOB_PSOR |= ((value & 0x03) << 16); //Set Address 0 & 1
+  GPIOB_PSOR |= (((value >> 4) & 0x03) << 10); //Set Address 4 & 5
+  GPIOB_PSOR |= (((value >> 10) & 0x03) << 22); //Set Address 10 & 11
+  GPIOB_PSOR |= (((value >> 15) & 0x03) << 4); //Set Address 15 & 16
+
+  if(((value >> 9) & 0x01)) //ADD9
+  {
+    GPIOB_PSOR = (1 << 20);
+  }
+  else
+  {
+    GPIOB_PCOR = (1 << 20);
+  }
+
+  if(((value >> 12) & 0x01)) //ADD12
+  {
+    GPIOB_PSOR = (1 << 21);
+  }
+  else
+  {
+    GPIOB_PCOR = (1 << 21);
+  }
+  
+  //---------------------------Port A--------------------------------//
+
+  GPIOA_PCOR |= 805306368; //Clear Address Lines On Port A
+  GPIOA_PSOR |= (((value >> 6) & 0x03) << 28); //Set Address 6 & 7
+
+  if(((value >> 3) & 0x01)) //ADD3
+  {
+    GPIOA_PSOR = (1 << 5);
+  }
+  else
+  {
+    GPIOA_PCOR = (1 << 5);
+  }
+    
+  if(((value >> 8) & 0x01)) //ADD8
+  {
+    GPIOA_PSOR = (1 << 26);
+  }
+  else
+  {
+    GPIOA_PCOR = (1 << 26);
+  }
+
+  //---------------------------Port D--------------------------------//
+  GPIOD_PCOR |= 3840; //Clear Address Lines On Port D
+  GPIOD_PSOR |= (((value >> 13) & 0x03) << 8); //Set Address 13 & 14
+
+  if(((value >> 17) & 0x01)) //ADD17
+  {
+    GPIOD_PSOR = (1 << 14);
+  }
+  else
+  {
+    GPIOD_PCOR = (1 << 14);
+  }
+
+  if(((value >> 18) & 0x01)) //ADD18
+  {
+    GPIOD_PSOR = (1 << 13);
+  }
+  else
+  {
+    GPIOD_PCOR = (1 << 13);
+  }
+
+  //---------------------------Port E--------------------------------//
+
+  if(((value >> 2) & 0x01)) //ADD2
+  {
+    GPIOE_PSOR = (1 << 26);
+  }
+  else
+  {
+    GPIOE_PCOR = (1 << 26);
+  }
+}
+
+static uint8_t AccessMode = 2;
+
+static inline void SPIRAMWrite(uint32_t address, uint8_t value)
+{
+  SetAddress(address);
+  
+  GPIOB_PCOR = (1 << 18); //WE LOW
+  GPIOB_PSOR = (1 << 19); //OE HIGH
+
+  if(AccessMode != 1) //Write pinMode(OUTPUT);
+  {
+    *portModeRegister(2) = 1; //IO 0
+    *portModeRegister(3) = 1; //IO 1
+    *portModeRegister(4) = 1; //IO 2
+    *portModeRegister(5) = 1; //IO 3
+    *portModeRegister(6) = 1; //IO 4
+    *portModeRegister(7) = 1; //IO 5
+    *portModeRegister(8) = 1; //IO 6
+    *portModeRegister(9) = 1; //IO 7
+    AccessMode = 1;
+  }
+
+  if((value & 0x01)) //DIO0
+  {
+    GPIOD_PSOR = (1 << 0);
+  }
+  else
+  {
+    GPIOD_PCOR = (1 << 0);
+  }
+
+  GPIOA_PCOR |= 12288; //Clear PORTA Data Lines
+  GPIOA_PSOR |= (((value >> 1) & 0x03) << 12); //DIO1 & DIO2
+
+  if(((value >> 3) & 0x01)) //DIO3
+  {
+    GPIOD_PSOR = (1 << 7);
+  }
+  else
+  {
+    GPIOD_PCOR = (1 << 7);
+  }
+
+  if(((value >> 4) & 0x01)) //DIO4
+  {
+    GPIOD_PSOR = (1 << 4);
+  }
+  else
+  {
+    GPIOD_PCOR = (1 << 4);
+  }
+
+  GPIOD_PCOR |= 12; //Clear PORTD Data Lines
+  GPIOD_PSOR |= (((value >> 5) & 0x03) << 2); //DIO5 & DIO6
+
+  if(((value >> 7) & 0x01)) //DIO7
+  {
+    GPIOC_PSOR = (1 << 3);
+  }
+  else
+  {
+    GPIOC_PCOR = (1 << 3);
+  }
+
+  //Back to Read
+  GPIOB_PSOR = (1 << 18); //WE HIGH
+}
+
+static inline uint8_t SPIRAMRead(uint32_t address)
+{
+  SetAddress(address);
+
+  GPIOB_PSOR = (1 << 18); //WE HIGH
+  GPIOB_PCOR = (1 << 19); //OE LOW
+
+  uint8_t value;
+
+  if(AccessMode != 0) //Read pinMode(INPUT);
+  {
+    *portModeRegister(2) = 0; //IO 0
+    *portModeRegister(3) = 0; //IO 1
+    *portModeRegister(4) = 0; //IO 2
+    *portModeRegister(5) = 0; //IO 3
+    *portModeRegister(6) = 0; //IO 4
+    *portModeRegister(7) = 0; //IO 5
+    *portModeRegister(8) = 0; //IO 6
+    *portModeRegister(9) = 0; //IO 7
+    AccessMode = 0;
+  }
+
+  //Read IO Pins
+  value = (GPIOD_PDIR & (1 << 0) ? 1 : 0);            //DIO0
+  value |= (((GPIOA_PDIR >> 12) & 0x03) << 1);        //DIO1 & DIO2
+  value |= ((GPIOD_PDIR & (1 << 7) ? 1 : 0) << 3);    //DIO3
+  value |= ((GPIOD_PDIR & (1 << 4) ? 1 : 0) << 4);    //DIO4
+  value |= (((GPIOD_PDIR >> 2) & 0x03) << 5);         //DIO5 & DIO6
+  value |= ((GPIOC_PDIR & (1 << 3) ? 1 : 0) << 7);    //DIO7
+  
+  return value;
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
 
 
 
