@@ -1,4 +1,4 @@
-New best FPS achieved 4.5 :-) 
+New best FPS achieved 5.7 :-) 
 
 First revision PCB design complete and awaiting fabrication.
 
