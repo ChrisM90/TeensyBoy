@@ -22,11 +22,11 @@
    SOFTWARE.
 */
 
-#include "Arm7.h"
-#include "ArmCore.h"
-#include "ThumbCore.h"
+#include "GBA_Arm7.h"
+#include "GBA_ArmCore.h"
+#include "GBA_ThumbCore.h"
 #include "Bios.h"
-#include "SoundManager.h"
+#include "GBA_SoundManager.h"
 #include <SD.h>
 #include <SD_t3.h>
 

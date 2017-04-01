@@ -22,8 +22,8 @@
    SOFTWARE.
 */
 
-#include "SoundManager.h"
-#include "Arm7.h"
+#include "GBA_SoundManager.h"
+#include "GBA_Arm7.h"
 #include <Audio.h>
 
 const int cpuFreq = 16 * 1024 * 1024;

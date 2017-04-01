@@ -1,5 +1,5 @@
 /* ILI9341_t3DMA library code is placed under the MIT license
- * Copyright (c) 2016 Frank BÃƒÂ¶sing
+ * Copyright (c) 2016 Frank Bösing
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the

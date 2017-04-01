@@ -22,8 +22,8 @@
    SOFTWARE.
 */
 
-#include "ArmCore.h"
-#include "Arm7.h"
+#include "GBA_ArmCore.h"
+#include "GBA_Arm7.h"
 
 #define SHIFT_LSL 0
 #define SHIFT_LSR 1

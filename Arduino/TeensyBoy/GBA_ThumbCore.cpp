@@ -22,8 +22,8 @@
    SOFTWARE.
 */
 
-#include "ThumbCore.h"
-#include "Arm7.h"
+#include "GBA_ThumbCore.h"
+#include "GBA_Arm7.h"
 
 //CPU Mode Definitions
 const uint32_t USR = 0x10;
