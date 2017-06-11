@@ -10,3 +10,6 @@ Do To's:
 4) Cartridge connector to play real games?
 5) Functionality to rip ROM's to SD card?
 6) Proper hardware explanation and documentation.
+
+If you feel inclined to donate:
+Bitcoin:  1EkhsVgQydefFFrJgEuCpkJ9TY6QsAo3og
